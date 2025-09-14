@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quina - Gerador de Palpites Avançado</title>
+    <title>Quina - Gerador Manual + Minimalista</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="./css/styles.css">
+    <script src="./js/scripts.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         quina: '#260184',
-                        'quina-light': '#4a2d95',
-                        'quina-dark': '#1a0162',
-                        'quina-bg': '#f8f6ff'
+                        'quina-light': '#5c1cfd',
+                        'quina-dark': '#1d0165',
+                        'quina-bg': '#ede6ff',
+                        'quina-purple': '#9268fd',
+                        'quina-purple-light': '#c9b3fe',
+                        'quina-purple-dark': '#3302b1'
                     }
                 }
             }
@@ -30,93 +36,153 @@
             40% { transform: translateY(-10px); }
             60% { transform: translateY(-5px); }
         }
-        .loading-circle {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(45deg, #260184, #4a2d95, #1a0162);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        
+
         .numero-quina {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, #260184, #4a2d95);
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #260184, #5c1cfd);
             color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 16px;
             cursor: pointer;
             transition: all 0.2s;
             border: 2px solid transparent;
-            margin: 1px;
         }
-        
+
         .numero-quina:hover {
             transform: scale(1.1);
             box-shadow: 0 4px 15px rgba(38, 1, 132, 0.4);
         }
-        
+
         .numero-quina.selecionado {
             background: linear-gradient(135deg, #dc2626, #ef4444);
             box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3);
             border-color: #dc2626;
         }
-        
+
+        .numero-quina.sorteado {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: 2px solid #fbbf24;
+            position: relative;
+        }
+
+        .numero-quina.sorteado::after {
+            content: "🎯";
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            font-size: 12px;
+        }
+
         .numero-quina.disabled {
             background: #9ca3af;
             cursor: not-allowed;
             opacity: 0.5;
         }
 
-        .numero-quina.sorteado {
-            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+        .numero-quina.par { border: 2px solid #10b981; }
+        .numero-quina.impar { border: 2px solid #f59e0b; }
+        .numero-quina.dezena1 { border: 2px solid #ef4444; }
+        .numero-quina.dezena2 { border: 2px solid #f59e0b; }
+        .numero-quina.dezena3 { border: 2px solid #10b981; }
+        .numero-quina.dezena4 { border: 2px solid #3b82f6; }
+        .numero-quina.dezena5 { border: 2px solid #8b5cf6; }
+        .numero-quina.dezena6 { border: 2px solid #ec4899; }
+        .numero-quina.dezena7 { border: 2px solid #6b7280; }
+        .numero-quina.dezena8 { border: 2px solid #059669; }
+
+        .contador-destaque { animation: bounce 1s ease-in-out; }
+        .meta-atingida {
+            background: linear-gradient(45deg, #10b981, #34d399) !important;
             color: white;
-            border: 2px solid #fbbf24;
-            position: relative;
+            animation: pulse 1s infinite;
         }
 
-        .numero-quina.sorteado::after {
-            content: "🎱";
+        .drop-zone {
+            min-height: 120px;
+            border: 3px dashed #260184;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #ede6ff, #dbcdfe);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #260184;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .drop-zone:hover {
+            border-color: #1d0165;
+            background: linear-gradient(135deg, #dbcdfe, #c9b3fe);
+            transform: scale(1.02);
+        }
+
+        .drop-zone.drag-over {
+            border-color: #dc2626;
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border-style: solid;
+            animation: pulse 0.5s infinite;
+        }
+
+        .numero-drop {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #260184, #5c1cfd);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 2px;
+            position: relative;
+            cursor: move;
+            transition: all 0.2s;
+        }
+
+        .numero-drop:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .numero-drop .remove-btn {
             position: absolute;
-            top: -6px;
-            right: -6px;
-            font-size: 10px;
-            background: #fbbf24;
-            color: #333;
+            top: -8px;
+            right: -8px;
+            background: #dc2626;
+            color: white;
             border-radius: 50%;
             width: 16px;
             height: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
         }
 
-        .numero-quina.sorteado.disabled {
-            background: linear-gradient(135deg, #6b7280, #4b5563);
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
+        .numero-drop:hover .remove-btn { opacity: 1; }
 
-        .numero-quina.sorteado.disabled::after {
-            background: #9ca3af;
-        }
-        
         .jogo-card {
-            background: linear-gradient(to right, #f8f6ff, #f3f1ff);
+            background: linear-gradient(to right, #ede6ff, #dbcdfe);
             border: 2px solid #260184;
             border-radius: 12px;
             padding: 16px;
             margin: 8px 0;
         }
-        
+
         .numero-jogo {
             width: 35px;
             height: 35px;
-            background: linear-gradient(135deg, #260184, #4a2d95);
+            background: linear-gradient(135deg, #260184, #5c1cfd);
             color: white;
             border-radius: 50%;
             display: flex;
@@ -125,29 +191,70 @@
             font-weight: bold;
             font-size: 14px;
         }
-        
-        .custo-total {
-            background: linear-gradient(45deg, #260184, #1a0162);
+
+        .numero-minimalista {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
             color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 14px;
+            margin: 2px;
         }
 
-        .digito-badge {
-            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
+        .jogo-minimalista-card {
+            background: linear-gradient(to right, #faf5ff, #f3e8ff);
+            border: 2px solid #8b5cf6;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .input-manual {
+            min-height: 80px;
+            border: 3px dashed #8b5cf6;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+            padding: 16px;
+            color: #8b5cf6;
             font-weight: bold;
+        }
+
+        .input-manual:focus {
+            outline: none;
+            border-color: #7c3aed;
+            background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .regra-item {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            border: 2px solid #10b981;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            transition: all 0.3s;
+        }
+
+        .regra-item:hover {
+            border-color: #059669;
+            transform: scale(1.01);
+        }
+
+        .regra-item.ativa {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border-color: #059669;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
         }
 
         .numero-resultado {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #260184, #4a2d95);
+            background: linear-gradient(135deg, #260184, #5c1cfd);
             color: white;
             border-radius: 50%;
             display: flex;
@@ -155,24 +262,82 @@
             justify-content: center;
             font-weight: bold;
             font-size: 18px;
-            margin: 2px;
+            margin: 0 4px;
         }
 
-        /* Contador de pares/ímpares com animação */
-        .contador-destaque {
-            animation: bounce 1s ease-in-out;
+        .config-principal {
+            background: linear-gradient(135deg, #c9b3fe, #9268fd);
+            border: 3px solid #3302b1;
+            border-radius: 16px;
+            margin-bottom: 24px;
         }
-        
-        .meta-atingida {
-            background: linear-gradient(45deg, #10b981, #34d399) !important;
+
+        .config-header {
+            background: linear-gradient(135deg, #260184, #5c1cfd);
             color: white;
-            animation: pulse 1s infinite;
+            padding: 12px 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
         }
-        
-        .meta-excedida {
-            background: linear-gradient(45deg, #ef4444, #f87171) !important;
+
+        .config-content {
+            background: linear-gradient(135deg, #ede6ff, #dbcdfe);
+            padding: 20px;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .valor-input {
+            background: white;
+            border: 2px solid #3302b1;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #260184;
+            width: 120px;
+            text-align: center;
+        }
+
+        .valor-input:focus {
+            outline: none;
+            border-color: #5c1cfd;
+            box-shadow: 0 0 0 3px rgba(92, 28, 253, 0.1);
+        }
+
+        .btn-atualizar {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
             color: white;
-            animation: pulse 0.5s infinite;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-atualizar:hover {
+            background: linear-gradient(135deg, #b91c1c, #dc2626);
+            transform: scale(1.05);
+        }
+
+        .status-badge {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .numero-quina { width: 40px; height: 40px; font-size: 12px; }
+            .numero-drop { width: 30px; height: 30px; font-size: 12px; }
         }
     </style>
 </head>
@@ -180,253 +345,709 @@
     <div class="container mx-auto px-4 py-6">
         <!-- Header -->
         <div class="text-center mb-6">
-            <h1 class="text-4xl font-bold text-quina mb-2">🎱 QUINA</h1>
-            <p class="text-gray-600">Gerador de Palpites com Análise Estatística</p>
+            <img src="https://i.postimg.cc/G3PvK6cN/quina.png" alt="Quina Logo" class="logo"><br />
+            <p class="text-gray-600">Gerador Completo: Manual + Minimalista com 19 Regras Avançadas</p>
+            
+            <!-- Botões de Navegação -->
+            <div class="flex flex-wrap justify-center gap-2 mt-4">
+                <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                    🔍 Análise dos Números
+                </button>
+                <button class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm">
+                    🔄 Resultados Alterados
+                </button>
+                <button class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm">
+                    📊 Estratégia Minimalista
+                </button>
+            </div>
         </div>
 
-        <!-- Loading -->
-        <div id="loading" class="text-center py-8">
-            <div class="loading-circle mx-auto mb-4"></div>
-            <p class="text-quina font-medium">Carregando último resultado...</p>
+        <!-- ⚙️ CONFIGURAÇÃO PRINCIPAL - VALORES DA QUINA -->
+        <div class="config-principal">
+            <div class="config-header">
+                <span>⚙️</span>
+                <span>CONFIGURAÇÃO PRINCIPAL</span>
+            </div>
+            
+            <div class="bg-quina text-white text-center py-2 font-bold">
+                ⚙️ CONFIGURAÇÃO PRINCIPAL - VALORES DA QUINA
+            </div>
+            
+            <div class="config-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Valor da Aposta Simples -->
+                    <div class="bg-white rounded-lg p-4 border-2 border-amber-400">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-2xl">💰</span>
+                            <span class="font-bold text-amber-800">Valor da Aposta Simples (5 dezenas):</span>
+                        </div>
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-xl font-bold text-amber-900">R$</span>
+                            <input 
+                                type="number" 
+                                id="valorApostaSimples" 
+                                class="valor-input" 
+                                value="2.50" 
+                                step="0.01" 
+                                min="0.01"
+                            >
+                            <button id="atualizarValor" class="btn-atualizar">
+                                🔄 Atualizar
+                            </button>
+                        </div>
+                        <div class="text-sm text-amber-700">
+                            <strong>Padrão oficial:</strong> R$ 2,50 (CEF)
+                        </div>
+                    </div>
+
+                    <!-- Multiplicadores Automáticos -->
+                    <div class="bg-white rounded-lg p-4 border-2 border-blue-400">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-2xl">📊</span>
+                            <span class="font-bold text-blue-800">Multiplicadores Automáticos:</span>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="font-medium">6 dezenas:</span>
+                                <span id="valor6dezenas" class="text-blue-700 font-bold">6x = R$ 15,00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">7 dezenas:</span>
+                                <span id="valor7dezenas" class="text-blue-700 font-bold">21x = R$ 52,50</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium">15 dezenas:</span>
+                                <span id="valor15dezenas" class="text-blue-700 font-bold">5005x = R$ 12.512,50</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status do Sistema -->
+                    <div class="bg-white rounded-lg p-4 border-2 border-green-400">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-2xl">💡</span>
+                            <span class="font-bold text-green-800">Status do Sistema:</span>
+                        </div>
+                        <div class="space-y-2">
+                            <div>
+                                <span class="status-badge">
+                                    ✅ Sistema configurado
+                                </span>
+                            </div>
+                            <div class="text-sm text-green-700">
+                                <strong>Última atualização:</strong> <span id="ultimaAtualizacao">-</span><br>
+                                <strong>Total de seções:</strong> 2 (Manual + Minimalista)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explicação do Sistema -->
+                <div class="mt-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg">
+                    <div class="flex items-start gap-2">
+                        <span class="text-xl">🔧</span>
+                        <div>
+                            <div class="font-bold text-purple-800 mb-2">Como funciona:</div>
+                            <div class="text-sm text-purple-700">
+                                Define o valor da aposta simples acima e todos os outros valores serão calculados automaticamente usando os multiplicadores oficiais da Caixa. O sistema atualiza automaticamente ambas as seções de geração de jogos.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Último Resultado -->
         <div id="ultimoResultado" class="hidden mb-6">
             <div class="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-quina">
                 <div class="bg-quina text-white p-4 text-center">
-                    <h2 id="tituloResultado" class="text-xl font-bold">Concurso 6800</h2>
-                    <div id="dataResultado" class="text-sm">📅 14/08/2025 (Quinta)</div>
+                    <h2 id="tituloResultado" class="text-xl font-bold">Concurso</h2>
+                    <div id="dataResultado" class="text-sm">📅 Data do sorteio</div>
                 </div>
                 
                 <div class="p-6 text-center">
-                    <div class="mb-4">
-                        <h3 class="text-lg font-bold text-quina mb-3">Números Sorteados</h3>
-                        <div id="numerosResultado" class="flex flex-wrap justify-center gap-1 mb-4">
-                            <!-- Números sorteados serão inseridos aqui -->
-                        </div>
+                    <div id="numerosResultado" class="flex justify-center gap-2 mb-4">
+                        <!-- Números sorteados serão inseridos aqui -->
                     </div>
                     
-                    <div id="statusResultado" class="text-lg font-bold mb-4 text-green-600">
-                        1 GANHADOR COM 5 PONTOS
+                    <div id="statusResultado" class="text-lg font-bold mb-4 text-red-600">
+                        <!-- Status será inserido aqui -->
                     </div>
                     
-                    <div class="text-center mb-4">
-                        <div class="text-2xl font-bold text-quina">
-                            Prêmio: R$ 2.935.729,41
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        <div class="flex items-center justify-center">
-                            <span class="text-quina mr-2">🏆</span>
-                            <span>4 acertos: 34 apostas - R$ 10.296,58</span>
-                        </div>
-                        <div class="flex items-center justify-center">
-                            <span class="text-quina mr-2">🏆</span>
-                            <span>3 acertos: 3174 apostas - R$ 104,23</span>
-                        </div>
-                        <div class="flex items-center justify-center">
-                            <span class="text-quina mr-2">🏆</span>
-                            <span>2 acertos: 77156 apostas - R$ 4,29</span>
-                        </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div id="premiacao4"></div>
+                        <div id="premiacao3"></div>
                     </div>
                     
                     <div class="mt-4 text-center">
-                        <div class="text-sm text-gray-600">Próximo Sorteio: Concurso 6801</div>
-                        <div class="text-sm text-gray-600">15/08/2025 (Sexta)</div>
-                        <div class="text-2xl font-bold text-quina mt-2">
-                            Prêmio Estimado: R$ 600.000,00
-                        </div>
+                        <div class="text-sm text-gray-600">Próximo Sorteio: <span id="proximoConcurso">Concurso</span></div>
+                        <div class="text-sm text-gray-600" id="dataProximoConcurso">Data</div>
+                        <div class="text-2xl font-bold text-quina mt-2" id="premioEstimado">Prêmio Estimado</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Interface Principal - Dividida em 2 Colunas -->
-        <div id="interfacePrincipal" class="hidden grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <!-- LAYOUT REORGANIZADO: SEÇÕES LADO A LADO -->
+        
+        <!-- Primeira linha: SEÇÃO 1 e SEÇÃO 2 lado a lado -->
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
             
-            <!-- LADO ESQUERDO: Criação de Jogos -->
-            <div class="space-y-6">
-                <!-- Controles do Jogo -->
-                <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-quina">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-bold text-quina">🎮 Criar Novo Jogo</h3>
-                        <button id="comoFuncionaBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
-                            ❓ Como Funciona
-                        </button>
+            <!-- 🎮 SEÇÃO 1: JOGO MANUAL COMPLETO -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-quina">
+                <h3 class="text-xl font-bold text-quina mb-4">🎮 SEÇÃO 1: CRIAÇÃO MANUAL DE JOGOS</h3>
+
+                <!-- Estratégia Par/Ímpar em Tempo Real -->
+                <div class="mb-6 p-5 bg-gradient-to-br from-purple-50 via-blue-50 to-green-50 border-4 border-quina rounded-xl shadow-lg">
+                    <div class="text-lg font-bold text-gray-800 mb-3 text-center">⚪ ESTRATÉGIA: PARES vs ÍMPARES</div>
+                    
+                    <!-- Padrão Histórico -->
+                    <div class="mb-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-orange-300 rounded-lg text-center">
+                        <div class="text-sm font-bold text-orange-800 mb-1">🏆 PADRÃO MAIS COMUM:</div>
+                        <div class="text-xl font-bold text-orange-900 mb-1">
+                            <span class="text-green-600">2</span>P/<span class="text-orange-600">3</span>I ou <span class="text-green-600">3</span>P/<span class="text-orange-600">2</span>I
+                        </div>
+                        <div class="text-xs text-orange-700">
+                            Distribuição equilibrada entre pares e ímpares
+                        </div>
+                    </div>
+
+                    <!-- Último Sorteio -->
+                    <div class="mb-3 p-2 bg-blue-100 border border-blue-300 rounded-lg text-center">
+                        <div class="text-xs font-medium text-blue-800">📊 ÚLTIMO SORTEIO:</div>
+                        <div class="text-sm font-bold text-blue-900">
+                            <span id="paresUltimoSorteio" class="text-green-600">2</span>P + 
+                            <span id="imparesUltimoSorteio" class="text-orange-600">3</span>I
+                        </div>
                     </div>
                     
-                    <!-- Informação do Jogo -->
-                    <div class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                        <div class="text-sm font-medium text-purple-800 mb-2">🎱 Regras da Quina:</div>
-                        <div class="text-xs text-purple-700">
-                            Selecione <strong>exatamente 5 números</strong> de 01 a 80.
-                            Custo: <strong>R$ 2,50</strong> por jogo.
+                    <!-- Contador Visual Atual -->
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div class="text-center p-3 bg-green-100 rounded-lg border-2 border-green-300">
+                            <div class="text-3xl font-bold text-green-600 contador-destaque" id="paresAtuais">0</div>
+                            <div class="text-sm font-bold text-green-700">PARES</div>
+                            <div class="text-xs text-green-600">🎯 Meta: <span class="font-bold">2-3</span></div>
+                        </div>
+                        <div class="text-center p-3 bg-orange-100 rounded-lg border-2 border-orange-300">
+                            <div class="text-3xl font-bold text-orange-600 contador-destaque" id="imparesAtuais">0</div>
+                            <div class="text-sm font-bold text-orange-700">ÍMPARES</div>
+                            <div class="text-xs text-orange-600">🎯 Meta: <span class="font-bold">2-3</span></div>
                         </div>
                     </div>
+                    
+                    <!-- Status da Estratégia -->
+                    <div id="statusEstrategia" class="text-center p-2 rounded-lg font-bold text-sm bg-gray-100 text-gray-700">
+                        🎯 Selecione números para ver sua estratégia
+                    </div>
+                </div>
 
-                    <!-- Controle de Números Sorteados -->
-                    <div id="controleNumerosSorteados" class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg hidden">
-                        <div class="flex justify-between items-center mb-2">
-                            <div class="text-sm font-medium text-orange-800">
-                                🎱 Números já sorteados: <span id="numerosSorteadosLista" class="font-bold"></span>
-                            </div>
-                            <label class="flex items-center text-sm">
-                                <input type="checkbox" id="permitirNumerosSorteados" class="mr-2">
-                                <span class="text-orange-700">Permitir usar números já sorteados</span>
-                            </label>
+                <!-- Análise por Dezenas -->
+                <div class="mb-6 p-4 bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 border-2 border-gray-300 rounded-xl">
+                    <div class="text-lg font-bold text-gray-800 mb-3 text-center">📊 DISTRIBUIÇÃO POR DEZENAS</div>
+                    
+                    <div class="grid grid-cols-4 gap-1 mb-3 text-xs">
+                        <div class="text-center p-2 bg-red-100 rounded border border-red-300">
+                            <div class="font-bold text-red-600" id="dezena1Atual">0</div>
+                            <div class="text-red-800">01-10</div>
                         </div>
-                        <div class="text-xs text-orange-600">
-                            Por padrão, números que saíram no último concurso estão <strong>desabilitados</strong> para evitar repetições.
+                        <div class="text-center p-2 bg-orange-100 rounded border border-orange-300">
+                            <div class="font-bold text-orange-600" id="dezena2Atual">0</div>
+                            <div class="text-orange-800">11-20</div>
+                        </div>
+                        <div class="text-center p-2 bg-green-100 rounded border border-green-300">
+                            <div class="font-bold text-green-600" id="dezena3Atual">0</div>
+                            <div class="text-green-800">21-30</div>
+                        </div>
+                        <div class="text-center p-2 bg-blue-100 rounded border border-blue-300">
+                            <div class="font-bold text-blue-600" id="dezena4Atual">0</div>
+                            <div class="text-blue-800">31-40</div>
                         </div>
                     </div>
-
-                    <!-- 🎯 CONTADOR DE PARES/ÍMPARES BEM DESTACADO -->
-                    <div class="mb-6 p-5 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 border-4 border-purple-400 rounded-xl shadow-lg">
-                        <div class="text-xl font-bold text-gray-800 mb-4 text-center">⚪ ESTRATÉGIA: NÚMEROS PARES vs ÍMPARES</div>
-                        
-                        <!-- Estatística do Último Sorteio -->
-                        <div id="estatisticaUltimoSorteio" class="mb-4 p-3 bg-purple-100 border border-purple-300 rounded-lg text-center">
-                            <div class="text-sm font-medium text-purple-800">📊 ÚLTIMO SORTEIO TEVE:</div>
-                            <div class="text-lg font-bold text-purple-900">
-                                <span id="paresUltimoSorteio" class="text-green-600">3</span> NÚMEROS PARES + 
-                                <span id="imparesUltimoSorteio" class="text-purple-600">2</span> NÚMEROS ÍMPARES
-                            </div>
-                            <div class="text-xs text-purple-700">👆 Use como referência para seus palpites (5 números)</div>
+                    
+                    <div class="grid grid-cols-4 gap-1 mb-3 text-xs">
+                        <div class="text-center p-2 bg-purple-100 rounded border border-purple-300">
+                            <div class="font-bold text-purple-600" id="dezena5Atual">0</div>
+                            <div class="text-purple-800">41-50</div>
                         </div>
-                        
-                        <!-- Contador Visual Atual -->
-                        <div class="grid grid-cols-2 gap-6 mb-4">
-                            <div class="text-center p-4 bg-green-100 rounded-lg border-2 border-green-300">
-                                <div class="text-4xl font-bold text-green-600 contador-destaque" id="paresAtuais">0</div>
-                                <div class="text-lg font-bold text-green-700">NÚMEROS PARES</div>
-                                <div class="text-sm text-green-600">🎯 Meta: <span id="metaPares" class="font-bold">3</span></div>
-                                <div class="text-xs text-green-500">02, 04, 06, 08...</div>
-                            </div>
-                            <div class="text-center p-4 bg-purple-100 rounded-lg border-2 border-purple-300">
-                                <div class="text-4xl font-bold text-purple-600 contador-destaque" id="imparesAtuais">0</div>
-                                <div class="text-lg font-bold text-purple-700">NÚMEROS ÍMPARES</div>
-                                <div class="text-sm text-purple-600">🎯 Meta: <span id="metaImpares" class="font-bold">2</span></div>
-                                <div class="text-xs text-purple-500">01, 03, 05, 07...</div>
-                            </div>
+                        <div class="text-center p-2 bg-pink-100 rounded border border-pink-300">
+                            <div class="font-bold text-pink-600" id="dezena6Atual">0</div>
+                            <div class="text-pink-800">51-60</div>
                         </div>
-                        
-                        <!-- Status da Estratégia -->
-                        <div id="statusEstrategia" class="text-center p-3 rounded-lg font-bold text-lg bg-gray-100 text-gray-700">
-                            🎯 Selecione números para ver sua estratégia
+                        <div class="text-center p-2 bg-gray-100 rounded border border-gray-300">
+                            <div class="font-bold text-gray-600" id="dezena7Atual">0</div>
+                            <div class="text-gray-800">61-70</div>
                         </div>
-                        
-                        <!-- Dica Dinâmica -->
-                        <div id="dicaEstrategia" class="mt-3 text-center text-sm bg-yellow-100 border border-yellow-300 rounded p-2 text-yellow-800">
-                            💡 <strong>Dica:</strong> Na Quina há 40 pares e 40 ímpares disponíveis (01-80)
+                        <div class="text-center p-2 bg-emerald-100 rounded border border-emerald-300">
+                            <div class="font-bold text-emerald-600" id="dezena8Atual">0</div>
+                            <div class="text-emerald-800">71-80</div>
                         </div>
                     </div>
-
-                    <!-- Análise Complementar -->
-                    <div id="analiseJogo" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div class="text-sm font-medium text-blue-800 mb-2">📊 Análise Complementar:</div>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <div>Números selecionados: <span id="numerosCount" class="font-bold">0/5</span></div>
-                            <div>Dígitos diferentes: <span id="digitosCount" class="font-bold">0</span></div>
-                        </div>
-                        <div id="sugestaoDigitos" class="mt-2 text-xs text-blue-700">
-                            <!-- Sugestão baseada no último sorteio -->
-                        </div>
+                    
+                    <div id="statusDistribuicao" class="text-center p-2 rounded-lg font-bold text-sm bg-gray-100 text-gray-700">
+                        🎯 Ideal: distribuir entre 3-4 dezenas diferentes
                     </div>
+                </div>
 
-                    <!-- Grid de Números 1-80 -->
-                    <div class="mb-4">
-                        <label class="block text-quina font-medium mb-3">Selecione 5 Números (01-80):</label>
-                        <div id="gridNumeros" class="grid grid-cols-8 gap-1 max-h-96 overflow-y-auto">
-                            <!-- Números de 01 a 80 serão gerados aqui -->
-                        </div>
+                <!-- Números Sorteados -->
+                <div class="mb-4 p-3 bg-red-50 border-2 border-red-300 rounded-lg">
+                    <div class="text-sm font-bold text-red-800 mb-2">🎯 Números já sorteados:</div>
+                    <div id="numerosSorteadosDisplay" class="flex flex-wrap gap-1 mb-2">
+                        <!-- Números sorteados aparecerão aqui -->
                     </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="permitirSorteados" class="mr-2 scale-110">
+                        <label for="permitirSorteados" class="text-red-800 text-sm font-medium">
+                            🔓 Permitir usar números já sorteados
+                        </label>
+                    </div>
+                </div>
+            
+                <!-- Quantidade de Dezenas -->
+                <div class="mb-3">
+                    <label class="block text-quina font-medium mb-2 text-sm">Quantidade de Dezenas:</label>
+                    <select id="quantidadeDezenas" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-quina text-base">
+                        <option value="5" selected>5 dezenas - R$ 2,50</option>
+                        <option value="6">6 dezenas - R$ 15,00</option>
+                        <option value="7">7 dezenas - R$ 52,50</option>
+                        <option value="8">8 dezenas - R$ 140,00</option>
+                        <option value="9">9 dezenas - R$ 315,00</option>
+                        <option value="10">10 dezenas - R$ 630,00</option>
+                    </select>
+                </div>
 
-                    <!-- Botões de Ação -->
-                    <div class="flex flex-wrap gap-2">
-                        <button id="limparJogo" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
-                            🗑️ Limpar
-                        </button>
-                        <button id="randomizarJogo" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg">
-                            🎲 Aleatório
-                        </button>
-                        <button id="adicionarJogo" class="bg-quina hover:bg-quina-dark text-white px-4 py-2 rounded-lg disabled:opacity-50">
-                            ➕ Adicionar Jogo
+                <!-- Inserção Manual -->
+                <div class="mb-4">
+                    <label class="block text-purple-600 font-medium mb-2 text-sm">✏️ Inserção Manual de Números:</label>
+                    <textarea 
+                        id="inputManual" 
+                        class="w-full input-manual resize-none text-sm"
+                        placeholder="Digite os números separados por vírgula, espaço ou quebra de linha...
+Exemplos: 01, 02, 03, 04, 05"
+                        rows="3"
+                    ></textarea>
+                    <div class="flex justify-between items-center mt-2 text-xs">
+                        <span class="text-purple-600">💡 Dica: Cole números de qualquer formato</span>
+                        <button id="processarInput" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-xs">
+                            📝 Processar
                         </button>
                     </div>
                 </div>
 
-                <!-- Tabela de Probabilidades -->
-                <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-blue-200">
-                    <h3 class="text-lg font-bold text-blue-800 mb-4">📊 Probabilidades de Acerto</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-xs">
-                            <thead class="bg-blue-100">
-                                <tr>
-                                    <th class="p-2 text-left">Acertos</th>
-                                    <th class="p-2 text-right">Probabilidade</th>
-                                    <th class="p-2 text-right">1 em X</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr><td class="p-1">5 acertos</td><td class="p-1 text-right">0,000004%</td><td class="p-1 text-right">24.040.320</td></tr>
-                                <tr class="bg-gray-50"><td class="p-1">4 acertos</td><td class="p-1 text-right">0,0003%</td><td class="p-1 text-right">64.106</td></tr>
-                                <tr><td class="p-1">3 acertos</td><td class="p-1 text-right">0,019%</td><td class="p-1 text-right">866</td></tr>
-                                <tr class="bg-gray-50"><td class="p-1">2 acertos</td><td class="p-1 text-right">1,29%</td><td class="p-1 text-right">36</td></tr>
-                            </tbody>
-                        </table>
+                <!-- Grid de Números 1-80 -->
+                <div class="mb-4">
+                    <label class="block text-quina font-medium mb-2 text-sm">Selecione as Dezenas (01-80):</label>
+                    <div class="text-xs mb-2 text-gray-600">
+                        <span class="text-green-600">●</span> Verde = Pares | 
+                        <span class="text-orange-600">●</span> Laranja = Ímpares |
+                        <span class="text-red-600">🎯</span> Já sorteados |
+                        <span class="text-gray-600">Bordas:</span> Cores por dezenas
                     </div>
-                    <div class="mt-3 text-xs text-blue-600">
-                        🎱 <strong>Quina:</strong> Sorteios todos os dias da semana!
+                    <div id="gridNumeros" class="grid grid-cols-8 gap-1 max-h-96 overflow-y-auto border p-2">
+                        <!-- Números de 01 a 80 serão gerados aqui -->
+                    </div>
+                </div>
+
+                <!-- Área de Drag and Drop -->
+                <div class="mb-4">
+                    <label class="block text-quina font-medium mb-2 text-sm">🎯 Números Selecionados:</label>
+                    <div 
+                        id="dropZone" 
+                        class="drop-zone"
+                        ondrop="drop(event)" 
+                        ondragover="allowDrop(event)"
+                        ondragenter="dragEnter(event)"
+                        ondragleave="dragLeave(event)"
+                    >
+                        <div id="dropMessage">
+                            <div class="text-sm mb-1">📥 Arraste números aqui ou clique nos números acima</div>
+                            <div class="text-xs">Os números selecionados aparecerão aqui</div>
+                        </div>
+                        <div id="numerosDropped" class="hidden flex flex-wrap justify-center gap-1">
+                            <!-- Números selecionados aparecerão aqui -->
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-xs text-gray-600">
+                        <span>Meta: <span id="quantidadeEspecificada" class="font-bold">5</span></span>
+                        <span>Atual: <span id="numerosNaArea" class="font-bold">0</span></span>
+                        <button id="limparArea" class="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs">
+                            🗑️ Limpar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="flex flex-wrap gap-2">
+                    <button id="limparJogo" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm">
+                        🗑️ Limpar
+                    </button>
+                    <button id="randomizarJogo" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg text-sm">
+                        🎲 Aleatório
+                    </button>
+                    <button id="adicionarJogo" class="bg-quina hover:bg-quina-dark text-white px-3 py-2 rounded-lg text-sm disabled:opacity-50" disabled>
+                        ➕ Adicionar Jogo
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 🧮 SEÇÃO 2: GERAÇÃO MINIMALISTA -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-purple-500">
+                <h3 class="text-xl font-bold text-purple-600 mb-4">🧮 SEÇÃO 2: GERAÇÃO MINIMALISTA</h3>
+
+                <!-- Dados do Próximo Sorteio -->
+                <div class="mb-4 p-3 bg-blue-50 border-2 border-blue-300 rounded-lg">
+                    <div class="text-sm font-bold text-blue-800 mb-2 text-center">📊 Dados do Próximo Sorteio</div>
+                    <div class="bg-white p-3 rounded-lg border border-blue-300">
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                                <div class="font-bold text-blue-800">🎯 Concurso:</div>
+                                <div id="proximoConcursoNum" class="text-blue-700">Loading...</div>
+                            </div>
+                            <div>
+                                <div class="font-bold text-blue-800">📅 Data:</div>
+                                <div id="dataProximoSorteio" class="text-blue-700">Loading...</div>
+                            </div>
+                            <div>
+                                <div class="font-bold text-blue-800">💰 Prêmio:</div>
+                                <div id="premioEstimadoMin" class="text-blue-700">Loading...</div>
+                            </div>
+                            <div>
+                                <div class="font-bold text-blue-800">📈 Status:</div>
+                                <div id="statusAPIMin" class="text-blue-700">Carregando...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seleção das Regras -->
+                <div class="mb-4">
+                    <div class="text-sm font-bold text-purple-800 mb-3">📋 Regras Minimalistas:</div>
+                    
+                    <div class="grid grid-cols-1 gap-2">
+                        <!-- R1 - Números Diretos -->
+                        <div class="regra-item" id="regra1">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r1-direto" class="regra-checkbox mr-2 scale-110" checked>
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R1 - Números Diretos</div>
+                                    <div class="text-xs text-green-700">Concurso, data, prêmio como números base</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R2 - Soma de Componentes -->
+                        <div class="regra-item" id="regra2">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r2-soma" class="regra-checkbox mr-2 scale-110" checked>
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R2 - Soma de Componentes</div>
+                                    <div class="text-xs text-green-700">Somar partes do concurso e data</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R3 - Multiplicação -->
+                        <div class="regra-item" id="regra3">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r3-multiplicacao" class="regra-checkbox mr-2 scale-110" checked>
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R3 - Multiplicação</div>
+                                    <div class="text-xs text-green-700">Dobrar e triplicar números importantes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R4 - Diferença -->
+                        <div class="regra-item" id="regra4">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r4-diferenca" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R4 - Diferença</div>
+                                    <div class="text-xs text-green-700">Subtrair valores entre componentes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R5 - Inverso -->
+                        <div class="regra-item" id="regra5">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r5-inverso" class="regra-checkbox mr-2 scale-110" checked>
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R5 - Inverso</div>
+                                    <div class="text-xs text-green-700">Espelhar números (25→52, limitado a 80)</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R6 - Vizinhos -->
+                        <div class="regra-item" id="regra6">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r6-vizinhos" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R6 - Vizinhos</div>
+                                    <div class="text-xs text-green-700">Números adjacentes aos importantes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R7 - Soma Cruzada -->
+                        <div class="regra-item" id="regra7">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r7-cruzada" class="regra-checkbox mr-2 scale-110" checked>
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R7 - Soma Cruzada</div>
+                                    <div class="text-xs text-green-700">Somar elementos de linhas diferentes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- ======= NOVAS REGRAS MINIMALISTAS AVANÇADAS ======= -->
+                        
+                        <!-- R8 - Módulo 80 -->
+                        <div class="regra-item" id="regra8">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r8-modulo" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R8 - Módulo 80</div>
+                                    <div class="text-xs text-green-700">Aplicar mod 80 em números grandes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R9 - Sequência Fibonacci -->
+                        <div class="regra-item" id="regra9">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r9-fibonacci" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R9 - Fibonacci</div>
+                                    <div class="text-xs text-green-700">Sequência baseada em componentes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R10 - Primos -->
+                        <div class="regra-item" id="regra10">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r10-primos" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R10 - Números Primos</div>
+                                    <div class="text-xs text-green-700">Incluir números primos estratégicos</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R11 - Múltiplos de 5 -->
+                        <div class="regra-item" id="regra11">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r11-multiplos5" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R11 - Múltiplos de 5</div>
+                                    <div class="text-xs text-green-700">5, 10, 15, 20... até 80</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R12 - Terminação -->
+                        <div class="regra-item" id="regra12">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r12-terminacao" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R12 - Terminação</div>
+                                    <div class="text-xs text-green-700">Números com terminação específica</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R13 - Raiz Quadrada -->
+                        <div class="regra-item" id="regra13">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r13-raiz" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R13 - Raiz Quadrada</div>
+                                    <div class="text-xs text-green-700">Raízes de números importantes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R14 - Soma de Dígitos -->
+                        <div class="regra-item" id="regra14">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r14-somadigitos" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R14 - Soma de Dígitos</div>
+                                    <div class="text-xs text-green-700">Somar dígitos de números grandes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R15 - Dezenas Extremas -->
+                        <div class="regra-item" id="regra15">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r15-extremas" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R15 - Dezenas Extremas</div>
+                                    <div class="text-xs text-green-700">Focar em 01-10 e 71-80</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R16 - Médias -->
+                        <div class="regra-item" id="regra16">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r16-medias" class="regra-checkbox mr-2 scale-110">
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R16 - Médias</div>
+                                    <div class="text-xs text-green-700">Médias entre números importantes</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R17 - Filtros Inteligentes -->
+                        <div class="regra-item" id="regra17">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r17-filtros" class="regra-checkbox mr-2 scale-110" checked>
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R17 - Filtros Inteligentes</div>
+                                    <div class="text-xs text-green-700">Evitar padrões impossíveis</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R18 - Balanceamento -->
+                        <div class="regra-item" id="regra18">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r18-balanceamento" class="regra-checkbox mr-2 scale-110" checked>
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R18 - Balanceamento</div>
+                                    <div class="text-xs text-green-700">Distribuir por dezenas e par/ímpar</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- R19 - Otimização Final -->
+                        <div class="regra-item" id="regra19">
+                            <label class="flex items-start cursor-pointer">
+                                <input type="checkbox" id="r19-otimizacao" class="regra-checkbox mr-2 scale-110" checked>
+                                <div>
+                                    <div class="text-sm font-bold text-green-800">R19 - Otimização Final</div>
+                                    <div class="text-xs text-green-700">Formatação e validação final</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 p-2 bg-purple-50 border border-purple-200 rounded-lg">
+                        <div class="text-xs text-purple-800">
+                            <strong>📋 Regras selecionadas:</strong> <span id="contadorRegras">8</span> de 19 disponíveis<br>
+                            <strong>💡 Recomendação:</strong> Use pelo menos 5 regras para maior diversidade<br>
+                            <strong>🎯 Especial:</strong> Regras otimizadas para números 1-80
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Configurações -->
+                <div class="mb-4">
+                    <label class="block text-purple-600 font-medium mb-2 text-sm">⚙️ Configurações:</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium">Quantidade:</label>
+                            <select id="qtdJogosMin" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="3">3 jogos</option>
+                                <option value="5" selected>5 jogos</option>
+                                <option value="7">7 jogos</option>
+                                <option value="10">10 jogos</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium">Dezenas:</label>
+                            <select id="dezenasPorJogoMin" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="5" selected>5 dezenas</option>
+                                <option value="6">6 dezenas</option>
+                                <option value="7">7 dezenas</option>
+                                <option value="8">8 dezenas</option>
+                                <option value="9">9 dezenas</option>
+                                <option value="10">10 dezenas</option>
+                                <option value="11">11 dezenas</option>
+                                <option value="12">12 dezenas</option>
+                                <option value="13">13 dezenas</option>
+                                <option value="14">14 dezenas</option>
+                                <option value="15">15 dezenas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Estratégia -->
+                <div class="mb-4">
+                    <label class="block text-purple-600 font-medium mb-2 text-sm">🎯 Estratégia:</label>
+                    <select id="estrategiaMin" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="equilibrada" selected>🎯 Equilibrada (2P/3I ou 3P/2I)</option>
+                        <option value="aleatorio">🎲 Totalmente Aleatório</option>
+                        <option value="pares">📊 Mais Pares</option>
+                        <option value="impares">📊 Mais Ímpares</option>
+                        <option value="extremas">🔥 Dezenas Extremas (1-10, 71-80)</option>
+                        <option value="centrais">🎯 Dezenas Centrais (31-50)</option>
+                    </select>
+                </div>
+                
+                <button id="gerarJogosMin" class="w-full bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm">
+                    🚀 Gerar Jogos Minimalistas
+                </button>
+                
+                <div id="resultadosMin" class="mt-4 hidden">
+                    <h4 class="font-bold text-purple-600 mb-2 text-sm">🎯 Jogos Gerados:</h4>
+                    <div id="listaJogosMin" class="space-y-2 h-96 overflow-y-auto border-2 border-purple-200 rounded-lg p-3 bg-gray-50 shadow-inner">
+                        <!-- Jogos minimalistas aparecerão aqui -->
+                    </div>
+                    <div class="mt-3 text-center">
+                        <button id="adicionarTodosMin" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm">
+                            ➕ Adicionar Todos
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- LADO DIREITO: Visualização dos Jogos -->
-            <div class="space-y-6">
-                <!-- Resumo e Controles -->
-                <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-quina">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-bold text-quina">📋 Meus Jogos</h3>
-                        <div class="flex items-center gap-2">
-                            <label class="flex items-center text-sm">
-                                <input type="checkbox" id="mostrarOrdemCrescente" class="mr-2" checked>
-                                🔢 Ordem Crescente
-                            </label>
-                        </div>
+        <!-- Segunda linha: MEUS JOGOS ocupando toda a largura -->
+        <div class="space-y-6">
+            <!-- Resumo e Controles -->
+            <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-quina">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-quina">📋 MEUS JOGOS</h3>
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center text-sm">
+                            <input type="checkbox" id="mostrarOrdemCrescente" class="mr-2" checked>
+                            🔢 Ordem Crescente
+                        </label>
                     </div>
+                </div>
 
-                    <!-- Custo Total -->
-                    <div class="mb-4">
-                        <div class="custo-total text-center">
-                            💰 Total: <span id="custoTotal">R$ 0,00</span>
-                        </div>
-                        <div class="text-center text-sm text-gray-600 mt-2">
-                            <span id="totalJogos">0</span> jogo(s) adicionado(s)
-                        </div>
+                <!-- Custo Total -->
+                <div class="mb-4">
+                    <div class="bg-gradient-to-r from-quina to-quina-dark text-white p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold">💰 Total: <span id="custoTotal">R$ 0,00</span></div>
+                        <div class="text-sm mt-1"><span id="totalJogos">0</span> jogo(s) adicionado(s)</div>
                     </div>
+                </div>
 
-                    <!-- Botões de Download -->
-                    <div class="grid grid-cols-3 gap-2 mb-4">
-                        <button id="downloadHTML" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm">
-                            🌐 HTML
-                        </button>
-                        <button id="downloadTXT" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm" title="TXT: Agora minimalista - só números!">
-                            📄 TXT
-                        </button>
-                        <button id="downloadXLSX" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm">
-                            📊 XLSX
-                        </button>
-                    </div>
-
-                    <!-- Botão Limpar Todos -->
-                    <button id="limparTodos" class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">
-                        🗑️ Limpar Todos os Jogos
+                <!-- Botões de Download -->
+                <div class="grid grid-cols-4 gap-2 mb-4">
+                    <button id="downloadHTML" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm">
+                        🌐 HTML
+                    </button>
+                    <button id="downloadTXT" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm" title="Gera arquivo TXT simples contendo apenas os números dos jogos, um jogo por linha">
+                        📄 TXT
+                    </button>
+                    <button id="downloadXLSX" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm">
+                        📊 XLSX
+                    </button>
+                    <button id="limparTodos" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm">
+                        🗑️ Limpar
                     </button>
                 </div>
 
                 <!-- Lista dos Jogos -->
-                <div class="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200 max-h-96 overflow-y-auto">
+                <div class="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto border">
                     <h4 class="font-bold text-gray-800 mb-4">Lista de Jogos:</h4>
                     <div id="listaJogos">
                         <p class="text-gray-500 text-center py-8">Nenhum jogo adicionado ainda</p>
@@ -434,188 +1055,188 @@
                 </div>
             </div>
         </div>
-
-        <!-- Modal Como Funciona -->
-        <div id="modalComoFunciona" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg shadow-lg max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
-                <div class="bg-quina text-white p-6 rounded-t-lg">
-                    <h2 class="text-2xl font-bold text-center">🎱 Como Funciona a Quina</h2>
-                </div>
-                
-                <div class="p-6 space-y-6">
-                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                        <h3 class="text-xl font-bold text-purple-800 mb-3">📋 Passo a Passo:</h3>
-                        <div class="space-y-3 text-purple-700">
-                            <p><strong>1. Estratégia de Pares/Ímpares:</strong> Veja como números pares/ímpares se distribuíram no último sorteio</p>
-                            <p><strong>2. Simplicidade total:</strong> Sempre 5 números, sempre R$ 2,50</p>
-                            <p><strong>3. Acompanhe o contador:</strong> Veja em tempo real sua distribuição de pares/ímpares</p>
-                            <p><strong>4. Múltiplas chances:</strong> Ganhe com 2, 3, 4 ou 5 acertos</p>
-                            <p><strong>5. Análise automática:</strong> Sabe se está seguindo a estratégia estatística</p>
-                            <p><strong>6. Download:</strong> Exporte seus jogos em HTML, TXT ou XLSX</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <h3 class="text-xl font-bold text-green-800 mb-3">⚪ Estratégia de Pares/Ímpares (Quina):</h3>
-                        <div class="space-y-2 text-green-700">
-                            <p><strong>📊 Análise por números:</strong> Conta quantos números pares/ímpares você escolheu</p>
-                            <p><strong>🎯 Meta dinâmica:</strong> Baseada na distribuição do último sorteio</p>
-                            <p><strong>📈 Contador duplo:</strong> Veja claramente quantos pares/ímpares selecionou</p>
-                            <p><strong>✅ Feedback inteligente:</strong> "Faltam: X pares, Y ímpares" em tempo real</p>
-                            <p><strong>💡 Range amplo:</strong> 40 números pares e 40 ímpares disponíveis (01-80)</p>
-                        </div>
-                    </div>
-
-                    <!-- Controle de Números Sorteados -->
-                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                        <h3 class="text-xl font-bold text-orange-800 mb-3">🎱 Controle de Números Sorteados:</h3>
-                        <div class="space-y-2 text-orange-700">
-                            <p><strong>Bloqueio automático:</strong> Números do último concurso ficam desabilitados por padrão</p>
-                            <p><strong>Visual especial:</strong> Números sorteados têm ícone 🎱 e cor roxa</p>
-                            <p><strong>Estratégia anti-repetição:</strong> Evita usar números que acabaram de sair</p>
-                            <p><strong>Flexibilidade:</strong> Marque "Permitir números sorteados" para habilitá-los</p>
-                            <p><strong>Geração inteligente:</strong> Randomização respeitará sua preferência automaticamente</p>
-                            <p><strong>Sorteios diários:</strong> Com sorteios todo dia, ter controle sobre repetições é ainda mais útil</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 class="text-xl font-bold text-blue-800 mb-3">🎯 Análise de Dígitos:</h3>
-                        <div class="space-y-2 text-blue-700">
-                            <p><strong>Como contamos:</strong> Todos os dígitos únicos (0-9) que aparecem nos números</p>
-                            <p><strong>Exemplo:</strong> 05 12 27 43 68 = dígitos 0, 1, 2, 3, 4, 5, 6, 7, 8 = 9 dígitos diferentes</p>
-                            <p><strong>Range amplo:</strong> Com 80 números, há muitas combinações possíveis</p>
-                            <p><strong>Sugestão:</strong> Último sorteio usou X dígitos → tente algo similar</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <h3 class="text-xl font-bold text-yellow-800 mb-3">💰 Sistema de Premiação:</h3>
-                        <div class="space-y-3">
-                            <div class="bg-white p-3 rounded border border-yellow-300">
-                                <div class="text-sm font-medium text-yellow-800 mb-2">🏆 Faixas de Premiação:</div>
-                                <div class="grid grid-cols-1 gap-2 text-xs text-yellow-700">
-                                    <div><strong>5 acertos:</strong> Prêmio máximo (mínimo R$ 700 mil)</div>
-                                    <div><strong>4 acertos:</strong> Prêmio alto (em torno de R$ 10 mil)</div>
-                                    <div><strong>3 acertos:</strong> Prêmio médio (em torno de R$ 100)</div>
-                                    <div><strong>2 acertos:</strong> Prêmio mínimo (em torno de R$ 4)</div>
-                                </div>
-                            </div>
-                            
-                            <div class="text-sm">
-                                <div><strong>Valor da aposta:</strong> R$ 2,50 (fixo)</div>
-                                <div><strong>Desenhos:</strong> Todos os dias da semana</div>
-                                <div><strong>Maior facilidade:</strong> 1 em 36 chances de ganhar algo!</div>
-                            </div>
-                            
-                            <div class="text-xs text-yellow-600">
-                                🎱 <strong>Dica:</strong> Distribua números entre as faixas (1-20, 21-40, 41-60, 61-80)!
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-gray-50 px-6 py-4 rounded-b-lg text-center">
-                    <button id="fecharModal" class="bg-quina hover:bg-quina-dark text-white font-medium py-2 px-6 rounded-lg">
-                        ✅ Entendi, Vamos Jogar!
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
-        // Variáveis globais
+        // ===== VARIÁVEIS GLOBAIS =====
         let ultimoResultado = null;
-        let jogosAdicionados = [];
-        let numerosSelecionados = [];
-        let numerosSorteados = new Set(); // Números do último sorteio
-        const quantidadeFixa = 5; // Quina sempre tem 5 números
-        const custoJogo = 2.50; // Quina custa R$ 2,50
+        let numerosDropArea = [];
+        let meusJogos = [];
+        let numerosSorteados = new Set();
+        let permitirNumerosSorteados = false;
+        
+        const sistemaValores = {
+            valorSimples: 2.50,
+            multiplicadores: {
+                5: 1, 6: 6, 7: 21, 8: 56, 9: 126, 10: 252, 11: 462, 12: 792, 13: 1287, 14: 2002, 15: 3003
+            },
+            obterValor: function(dezenas) {
+                return this.valorSimples * (this.multiplicadores[dezenas] || 1);
+            },
+            atualizarValorSimples: function(novoValor) {
+                this.valorSimples = parseFloat(novoValor);
+                this.atualizarInterfaceValores();
+            },
+            atualizarInterfaceValores: function() {
+                // Atualizar dropdown de quantidade de dezenas
+                const select = document.getElementById('quantidadeDezenas');
+                if (select) {
+                    let options = '';
+                    for (let i = 5; i <= 15; i++) {
+                        const selected = i === 5 ? ' selected' : '';
+                        options += `<option value="${i}"${selected}>${i} dezenas - ${formatarMoeda(this.obterValor(i))}</option>`;
+                    }
+                    select.innerHTML = options;
+                }
+                
+                // Atualizar valores dos multiplicadores na seção de configuração
+                document.getElementById('valor6dezenas').textContent = `6x = ${formatarMoeda(this.obterValor(6))}`;
+                document.getElementById('valor7dezenas').textContent = `21x = ${formatarMoeda(this.obterValor(7))}`;
+                document.getElementById('valor15dezenas').textContent = `3003x = ${formatarMoeda(this.obterValor(15))}`;
+                
+                // Atualizar timestamp
+                document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleString('pt-BR');
+                
+                // RECALCULAR CUSTOS DOS JOGOS EXISTENTES
+                meusJogos.forEach(jogo => {
+                    jogo.custo = this.obterValor(jogo.numeros.length);
+                });
+                
+                // Atualizar visualização dos jogos
+                atualizarVisualizacaoJogos();
+                
+                // Recalcular custo total dos jogos
+                atualizarCustoTotal();
+            }
+        };
 
-        // Inicialização da aplicação
+        // ===== DADOS DE EXEMPLO (caso API falhe) =====
+        const DADOS_EXEMPLO = {
+            numero: 6700,
+            dataApuracao: "20/01/2025",
+            dataProximoConcurso: "21/01/2025",
+            listaDezenas: ["08", "15", "23", "41", "72"],
+            acumulado: false,
+            valorEstimadoProximoConcurso: 1500000.00,
+            listaRateioPremio: [
+                { descricaoFaixa: "5 acertos", numeroDeGanhadores: 1, valorPremio: 8500000.00 },
+                { descricaoFaixa: "4 acertos", numeroDeGanhadores: 87, valorPremio: 9500.50 },
+                { descricaoFaixa: "3 acertos", numeroDeGanhadores: 6254, valorPremio: 125.75 }
+            ]
+        };
+
+        // ===== INICIALIZAÇÃO =====
         document.addEventListener('DOMContentLoaded', async () => {
-            await carregarUltimoResultado();
+            try {
+                await carregarUltimoResultado();
+            } catch (error) {
+                console.log('Usando dados de exemplo para Quina');
+                usarDadosExemplo();
+            }
+            
             inicializarInterface();
             configurarEventListeners();
+            inicializarConfiguracaoPrincipal();
         });
 
-        // Carregar último resultado da Quina
+        function inicializarConfiguracaoPrincipal() {
+            // Inicializar timestamp
+            document.getElementById('ultimaAtualizacao').textContent = new Date().toLocaleString('pt-BR');
+            
+            // Configurar eventos da seção de configuração
+            document.getElementById('atualizarValor').addEventListener('click', () => {
+                const novoValor = parseFloat(document.getElementById('valorApostaSimples').value);
+                if (novoValor > 0) {
+                    sistemaValores.atualizarValorSimples(novoValor);
+                    showCustomAlert('✅ Valores Atualizados', `Novo valor base: ${formatarMoeda(novoValor)}\n\nTodos os valores foram recalculados automaticamente!`);
+                } else {
+                    showCustomAlert('⚠️ Valor Inválido', 'Insira um valor maior que zero!');
+                }
+            });
+            
+            // Inicializar valores na interface
+            sistemaValores.atualizarInterfaceValores();
+        }
+
         async function carregarUltimoResultado() {
             try {
-                const response = await fetch('https://servicebus2.caixa.gov.br/portaldeloterias/api/quina');
-                const data = await response.json();
-                ultimoResultado = data;
-                exibirUltimoResultado(data);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                const response = await fetch('https://servicebus2.caixa.gov.br/portaldeloterias/api/quina', {
+                    signal: controller.signal,
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.numero && data.numero > 0) {
+                        ultimoResultado = data;
+                        exibirUltimoResultado(data);
+                        return;
+                    }
+                }
+                
+                throw new Error('API não retornou dados válidos');
+                
             } catch (error) {
-                console.error('Erro ao carregar resultado:', error);
-                // Usar dados de exemplo se a API falhar
-                const dadosExemplo = {
-                    numero: 6800,
-                    dataApuracao: "14/08/2025",
-                    dataProximoConcurso: "15/08/2025",
-                    listaDezenas: ["02", "06", "41", "55", "76"],
-                    acumulado: false,
-                    valorEstimadoProximoConcurso: 600000.00,
-                    listaRateioPremio: [
-                        { descricaoFaixa: "5 acertos", numeroDeGanhadores: 1, valorPremio: 2935729.41 },
-                        { descricaoFaixa: "4 acertos", numeroDeGanhadores: 34, valorPremio: 10296.58 },
-                        { descricaoFaixa: "3 acertos", numeroDeGanhadores: 3174, valorPremio: 104.23 },
-                        { descricaoFaixa: "2 acertos", numeroDeGanhadores: 77156, valorPremio: 4.29 }
-                    ]
-                };
-                exibirUltimoResultado(dadosExemplo);
-            } finally {
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('ultimoResultado').classList.remove('hidden');
-                document.getElementById('interfacePrincipal').classList.remove('hidden');
+                throw error;
             }
         }
 
-        // Exibir último resultado
-        function exibirUltimoResultado(data) {
-            document.getElementById('tituloResultado').textContent = `Concurso ${data.numero}`;
-            document.getElementById('dataResultado').textContent = `📅 ${data.dataApuracao} (Quinta)`;
+        function usarDadosExemplo() {
+            ultimoResultado = DADOS_EXEMPLO;
+            exibirUltimoResultado(ultimoResultado);
+        }
 
-            // Números sorteados
+        function exibirUltimoResultado(data) {
+            const numeros = data.listaDezenas || [];
+            
+            document.getElementById('tituloResultado').textContent = `Concurso ${data.numero}`;
+            document.getElementById('dataResultado').textContent = `📅 ${data.dataApuracao}`;
+
             const numerosDiv = document.getElementById('numerosResultado');
             numerosDiv.innerHTML = '';
-            const numerosSorteio = data.listaDezenas || data.dezenasSorteadasOrdemSorteio || [];
-            
-            numerosSorteio.forEach(num => {
+            numeros.forEach(num => {
                 const numeroEl = document.createElement('div');
                 numeroEl.className = 'numero-resultado';
                 numeroEl.textContent = num;
                 numerosDiv.appendChild(numeroEl);
             });
 
-            // Identificar números sorteados para bloqueio
-            identificarNumerosSorteados(numerosSorteio);
+            document.getElementById('statusResultado').textContent = data.acumulado ? 'ACUMULOU!' : 'TEVE GANHADOR!';
 
-            // Status do concurso e premiação
-            const ganhador5 = data.listaRateioPremio?.find(p => p.descricaoFaixa === "5 acertos");
-            if (ganhador5 && ganhador5.numeroDeGanhadores > 0) {
-                document.getElementById('statusResultado').textContent = 
-                    `${ganhador5.numeroDeGanhadores} GANHADOR${ganhador5.numeroDeGanhadores > 1 ? 'ES' : ''} COM 5 PONTOS`;
-                document.getElementById('statusResultado').className = 'text-lg font-bold mb-4 text-green-600';
-                
-                // Mostrar prêmio principal
-                document.querySelector('.text-2xl.font-bold.text-quina').textContent = 
-                    `Prêmio: ${formatarMoeda(ganhador5.valorPremio)}`;
-            } else {
-                document.getElementById('statusResultado').textContent = 'ACUMULOU!';
-                document.getElementById('statusResultado').className = 'text-lg font-bold mb-4 text-red-600';
-                
-                document.querySelector('.text-2xl.font-bold.text-quina').textContent = 
-                    `Prêmio Estimado: ${formatarMoeda(data.valorEstimadoProximoConcurso || 600000)}`;
+            if (data.listaRateioPremio && data.listaRateioPremio.length >= 2) {
+                document.getElementById('premiacao4').innerHTML = `
+                    <span class="text-quina mr-2">🏆</span>
+                    <span>4 acertos: ${data.listaRateioPremio[1].numeroDeGanhadores} - ${formatarMoeda(data.listaRateioPremio[1].valorPremio)}</span>
+                `;
+                document.getElementById('premiacao3').innerHTML = `
+                    <span class="text-quina mr-2">🏆</span>
+                    <span>3 acertos: ${data.listaRateioPremio[2] ? data.listaRateioPremio[2].numeroDeGanhadores : 0} - ${formatarMoeda(data.listaRateioPremio[2] ? data.listaRateioPremio[2].valorPremio : 0)}</span>
+                `;
             }
 
-            // 🎯 NOVA FUNCIONALIDADE PRINCIPAL: Analisar pares/ímpares do último sorteio
-            analisarParesImparesUltimoSorteio(numerosSorteio);
+            document.getElementById('proximoConcurso').textContent = `Concurso ${data.numero + 1}`;
+            document.getElementById('dataProximoConcurso').textContent = data.dataProximoConcurso || 'A definir';
+            document.getElementById('premioEstimado').textContent = formatarMoeda(data.valorEstimadoProximoConcurso || 1500000);
+
+            // Dados seção minimalista
+            document.getElementById('proximoConcursoNum').textContent = data.numero + 1;
+            document.getElementById('dataProximoSorteio').textContent = data.dataProximoConcurso || 'A definir';
+            document.getElementById('premioEstimadoMin').textContent = formatarMoeda(data.valorEstimadoProximoConcurso || 1500000);
+            document.getElementById('statusAPIMin').textContent = 'Dados carregados';
+
+            analisarParesImparesTempoReal(numeros);
+            identificarNumerosSorteados(numeros);
+            exibirNumerosSorteados(numeros);
+            
+            document.getElementById('ultimoResultado').classList.remove('hidden');
         }
 
-        // 🎯 NOVA FUNCIONALIDADE PRINCIPAL: Analisar pares/ímpares do último sorteio
-        function analisarParesImparesUltimoSorteio(numeros) {
+        function analisarParesImparesTempoReal(numeros) {
             let paresUltimoSorteio = 0;
             let imparesUltimoSorteio = 0;
             
@@ -628,90 +1249,302 @@
                 }
             });
             
-            // Armazenar dados globalmente
-            window.paresUltimoSorteio = paresUltimoSorteio;
-            window.imparesUltimoSorteio = imparesUltimoSorteio;
-            
-            // 🎯 ATUALIZAR INTERFACE COM OS DADOS ESTATÍSTICOS
             document.getElementById('paresUltimoSorteio').textContent = paresUltimoSorteio;
             document.getElementById('imparesUltimoSorteio').textContent = imparesUltimoSorteio;
-            document.getElementById('metaPares').textContent = paresUltimoSorteio;
-            document.getElementById('metaImpares').textContent = imparesUltimoSorteio;
             
-            console.log(`Último sorteio: ${numeros.join(' ')} = ${paresUltimoSorteio} pares, ${imparesUltimoSorteio} ímpares`);
-            
-            // Analisar dígitos do último sorteio para sugestões
-            analisarDigitosUltimoSorteio(numeros);
             atualizarContadorParesImpares();
         }
 
-        // Identificar números sorteados para bloqueio
         function identificarNumerosSorteados(numeros) {
             numerosSorteados.clear();
             numeros.forEach(num => {
                 numerosSorteados.add(parseInt(num));
             });
+        }
+
+        function exibirNumerosSorteados(numeros) {
+            const displayDiv = document.getElementById('numerosSorteadosDisplay');
+            displayDiv.innerHTML = numeros.map(num => 
+                `<span class="inline-block bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">${num}</span>`
+            ).join('');
+        }
+
+        function inicializarInterface() {
+            numerosDropArea = [];
+            criarGridNumeros();
+            configurarDragAndDrop();
+            atualizarContadorParesImpares();
+            atualizarContadorDezenas();
+            atualizarVisualizacaoDropArea();
+            configurarRegrasMinimalistas();
+        }
+
+        function criarGridNumeros() {
+            const grid = document.getElementById('gridNumeros');
+            grid.innerHTML = '';
             
-            // Exibir controle se há números sorteados
-            if (numerosSorteados.size > 0) {
-                exibirControleNumerosSorteados();
+            for (let i = 1; i <= 80; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'numero-quina';
+                
+                // Classificar por par/ímpar
+                if (i % 2 === 0) {
+                    btn.classList.add('par');
+                } else {
+                    btn.classList.add('impar');
+                }
+                
+                // Classificar por dezena
+                const dezena = Math.floor((i - 1) / 10) + 1;
+                btn.classList.add(`dezena${dezena}`);
+                
+                if (numerosSorteados.has(i)) {
+                    btn.classList.add('sorteado');
+                    if (!permitirNumerosSorteados) {
+                        btn.classList.add('disabled');
+                        btn.disabled = true;
+                    }
+                }
+                
+                btn.textContent = i.toString().padStart(2, '0');
+                btn.onclick = () => toggleNumero(i);
+                btn.draggable = true;
+                btn.dataset.numero = i;
+                
+                btn.addEventListener('dragstart', (e) => {
+                    if (btn.disabled) {
+                        e.preventDefault();
+                        return;
+                    }
+                    e.dataTransfer.setData('text/plain', i);
+                    btn.classList.add('dragging');
+                });
+                
+                btn.addEventListener('dragend', () => {
+                    btn.classList.remove('dragging');
+                });
+                
+                grid.appendChild(btn);
             }
         }
 
-        // Exibir controle de números sorteados
-        function exibirControleNumerosSorteados() {
-            const controle = document.getElementById('controleNumerosSorteados');
-            const lista = document.getElementById('numerosSorteadosLista');
+        function configurarRegrasMinimalistas() {
+            const checkboxes = document.querySelectorAll('.regra-checkbox');
             
-            const numerosArray = Array.from(numerosSorteados).sort((a, b) => a - b);
-            lista.textContent = numerosArray.map(n => n.toString().padStart(2, '0')).join(', ');
-            
-            controle.classList.remove('hidden');
-        }
-
-        // Analisar dígitos do último sorteio
-        function analisarDigitosUltimoSorteio(numeros) {
-            const digitos = new Set();
-            numeros.forEach(num => {
-                const numStr = num.toString().padStart(2, '0');
-                // Adicionar cada dígito individual
-                for (let digit of numStr) {
-                    digitos.add(parseInt(digit));
-                }
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', atualizarContadorRegras);
             });
             
-            window.digitosUltimoSorteio = digitos.size;
-            console.log(`Último sorteio: ${numeros.join(' ')} = ${digitos.size} dígitos: ${Array.from(digitos).sort().join(' ')}`);
-            atualizarSugestaoDigitos();
+            atualizarContadorRegras();
         }
 
-        // Inicializar interface
-        function inicializarInterface() {
-            criarGridNumeros();
-            atualizarContadorParesImpares();
-        }
-
-        // 🎯 NOVA FUNCIONALIDADE PRINCIPAL: Atualizar contador de pares/ímpares
-        function atualizarContadorParesImpares() {
-            let paresAtuais = 0;
-            let imparesAtuais = 0;
+        function atualizarContadorRegras() {
+            const checkboxes = document.querySelectorAll('.regra-checkbox:checked');
+            document.getElementById('contadorRegras').textContent = checkboxes.length;
             
-            numerosSelecionados.forEach(numero => {
-                if (numero % 2 === 0) {
-                    paresAtuais++;
+            document.querySelectorAll('.regra-item').forEach((item, index) => {
+                const checkbox = item.querySelector('.regra-checkbox');
+                if (checkbox && checkbox.checked) {
+                    item.classList.add('ativa');
                 } else {
-                    imparesAtuais++;
+                    item.classList.remove('ativa');
+                }
+            });
+        }
+
+        function configurarDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
+            
+            dropZone.addEventListener('dragleave', (e) => {
+                if (!dropZone.contains(e.relatedTarget)) {
+                    dropZone.classList.remove('drag-over');
                 }
             });
             
-            const metaPares = window.paresUltimoSorteio || 3;
-            const metaImpares = window.imparesUltimoSorteio || 2;
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                
+                const numero = parseInt(e.dataTransfer.getData('text/plain'));
+                if (!isNaN(numero)) {
+                    adicionarNumeroDropArea(numero);
+                }
+            });
+        }
+
+        function configurarEventListeners() {
+            // Checkbox números sorteados
+            document.getElementById('permitirSorteados').addEventListener('change', (e) => {
+                permitirNumerosSorteados = e.target.checked;
+                criarGridNumeros();
+            });
+
+            // Input manual
+            document.getElementById('processarInput').addEventListener('click', processarNumerosInput);
+
+            // Botões principais
+            document.getElementById('quantidadeDezenas').addEventListener('change', (e) => {
+                limparSelecao();
+                atualizarVisualizacaoDropArea();
+            });
+
+            document.getElementById('limparJogo').addEventListener('click', limparSelecao);
+            document.getElementById('randomizarJogo').addEventListener('click', randomizarJogo);
+            document.getElementById('adicionarJogo').addEventListener('click', adicionarJogo);
+            document.getElementById('limparArea').addEventListener('click', limparSelecao);
             
-            // Atualizar contadores visuais
+            // Minimalista
+            document.getElementById('gerarJogosMin').addEventListener('click', gerarJogosMinimalistas);
+            document.getElementById('adicionarTodosMin').addEventListener('click', adicionarTodosJogosMinimalistas);
+            
+            // Controles
+            document.getElementById('mostrarOrdemCrescente').addEventListener('change', atualizarVisualizacaoJogos);
+            document.getElementById('limparTodos').addEventListener('click', limparTodosJogos);
+            
+            // Downloads
+            document.getElementById('downloadHTML').addEventListener('click', () => downloadJogos('html'));
+            document.getElementById('downloadTXT').addEventListener('click', () => downloadJogos('txt'));
+            document.getElementById('downloadXLSX').addEventListener('click', () => downloadJogos('xlsx'));
+        }
+
+        // ===== FUNÇÕES PRINCIPAIS =====
+
+        function toggleNumero(numero) {
+            if (numerosSorteados.has(numero) && !permitirNumerosSorteados) {
+                showCustomAlert('⚠️ Número Já Sorteado', `O número ${numero.toString().padStart(2, '0')} saiu no último concurso.`);
+                return;
+            }
+            
+            const btn = document.querySelector(`[data-numero="${numero}"]`);
+            const maxSelecionados = parseInt(document.getElementById('quantidadeDezenas').value);
+            
+            if (numerosDropArea.includes(numero)) {
+                removerNumeroDropArea(numero);
+                btn.classList.remove('selecionado');
+            } else if (numerosDropArea.length < maxSelecionados) {
+                adicionarNumeroDropArea(numero);
+                btn.classList.add('selecionado');
+            } else {
+                showCustomAlert('⚠️ Limite Atingido', `Você já selecionou ${maxSelecionados} números!`);
+            }
+        }
+
+        function adicionarNumeroDropArea(numero) {
+            const quantidadePermitida = parseInt(document.getElementById('quantidadeDezenas').value);
+            
+            if (!numerosDropArea.includes(numero) && numerosDropArea.length < quantidadePermitida) {
+                numerosDropArea.push(numero);
+                atualizarVisualizacaoDropArea();
+                atualizarContadorParesImpares();
+                atualizarContadorDezenas();
+                validarBotaoAdicionar();
+            }
+        }
+
+        function removerNumeroDropArea(numero) {
+            numerosDropArea = numerosDropArea.filter(n => n !== numero);
+            atualizarVisualizacaoDropArea();
+            atualizarContadorParesImpares();
+            atualizarContadorDezenas();
+            validarBotaoAdicionar();
+        }
+
+        function atualizarVisualizacaoDropArea() {
+            const dropZone = document.getElementById('dropZone');
+            const dropMessage = document.getElementById('dropMessage');
+            const numerosDropped = document.getElementById('numerosDropped');
+            const numerosNaArea = document.getElementById('numerosNaArea');
+            const quantidadeEspecificada = document.getElementById('quantidadeEspecificada');
+            
+            const quantidadeAtual = parseInt(document.getElementById('quantidadeDezenas').value) || 5;
+            
+            quantidadeEspecificada.textContent = quantidadeAtual.toString();
+            numerosNaArea.textContent = numerosDropArea.length.toString();
+            
+            if (numerosDropArea.length === 0) {
+                dropMessage.classList.remove('hidden');
+                numerosDropped.classList.add('hidden');
+            } else {
+                dropMessage.classList.add('hidden');
+                numerosDropped.classList.remove('hidden');
+                
+                numerosDropped.innerHTML = numerosDropArea
+                    .map(numero => `
+                        <div class="numero-drop">
+                            ${numero.toString().padStart(2, '0')}
+                            <div class="remove-btn" onclick="removerNumeroDropArea(${numero}); document.querySelector('[data-numero=\\'${numero}\\']').classList.remove('selecionado');">×</div>
+                        </div>
+                    `).join('');
+            }
+        }
+
+        function processarNumerosInput() {
+            const input = document.getElementById('inputManual');
+            const texto = input.value.trim();
+            
+            if (!texto) {
+                showCustomAlert('⚠️ Campo Vazio', 'Digite alguns números primeiro!');
+                return;
+            }
+            
+            const numerosTexto = texto.match(/\d+/g);
+            if (!numerosTexto) {
+                showCustomAlert('❌ Erro', 'Nenhum número válido encontrado!');
+                return;
+            }
+            
+            const numerosValidos = numerosTexto
+                .map(n => parseInt(n))
+                .filter(n => n >= 1 && n <= 80)
+                .filter((n, index, arr) => arr.indexOf(n) === index);
+            
+            if (numerosValidos.length === 0) {
+                showCustomAlert('❌ Erro', 'Nenhum número válido (01-80) encontrado!');
+                return;
+            }
+            
+            const numerosSorteadosNaLista = numerosValidos.filter(n => numerosSorteados.has(n));
+            if (numerosSorteadosNaLista.length > 0 && !permitirNumerosSorteados) {
+                showCustomAlert('⚠️ Números Já Sorteados', `Os números ${numerosSorteadosNaLista.map(n => n.toString().padStart(2, '0')).join(', ')} saíram no último concurso.`);
+                return;
+            }
+            
+            const quantidadePermitida = parseInt(document.getElementById('quantidadeDezenas').value);
+            if (numerosValidos.length > quantidadePermitida) {
+                showCustomAlert('⚠️ Aviso', `Você digitou ${numerosValidos.length} números, mas selecionou ${quantidadePermitida} dezenas. Os primeiros ${quantidadePermitida} serão usados.`);
+            }
+            
+            limparSelecao();
+            
+            const numerosParaAplicar = numerosValidos.slice(0, quantidadePermitida);
+            numerosParaAplicar.forEach(numero => {
+                numerosDropArea.push(numero);
+                const btn = document.querySelector(`[data-numero="${numero}"]`);
+                if (btn) btn.classList.add('selecionado');
+            });
+            
+            input.value = '';
+            
+            atualizarVisualizacaoDropArea();
+            atualizarContadorParesImpares();
+            atualizarContadorDezenas();
+            validarBotaoAdicionar();
+            
+            showCustomAlert('✅ Sucesso', `${numerosParaAplicar.length} números aplicados!`);
+        }
+
+        function atualizarContadorParesImpares() {
+            const paresAtuais = numerosDropArea.filter(num => num % 2 === 0).length;
+            const imparesAtuais = numerosDropArea.filter(num => num % 2 !== 0).length;
+            
             document.getElementById('paresAtuais').textContent = paresAtuais;
             document.getElementById('imparesAtuais').textContent = imparesAtuais;
             
-            // Aplicar animação de destaque
             document.getElementById('paresAtuais').classList.add('contador-destaque');
             document.getElementById('imparesAtuais').classList.add('contador-destaque');
             
@@ -720,305 +1553,564 @@
                 document.getElementById('imparesAtuais').classList.remove('contador-destaque');
             }, 500);
             
-            // 🎯 AVALIAR ESTRATÉGIA E MOSTRAR STATUS
-            const totalNumeros = numerosSelecionados.length;
+            const totalSelecionados = numerosDropArea.length;
             const statusEl = document.getElementById('statusEstrategia');
-            const dicaEl = document.getElementById('dicaEstrategia');
             
-            if (totalNumeros === 0) {
+            if (totalSelecionados === 0) {
                 statusEl.textContent = '🎯 Selecione números para ver sua estratégia';
-                statusEl.className = 'text-center p-3 rounded-lg font-bold text-lg bg-gray-100 text-gray-700';
-                dicaEl.innerHTML = '💡 <strong>Dica:</strong> Na Quina há 40 pares e 40 ímpares disponíveis (01-80)';
-            } else if (totalNumeros < 5) {
-                // Ainda selecionando
-                const paresRestantes = Math.max(0, metaPares - paresAtuais);
-                const imparesRestantes = Math.max(0, metaImpares - imparesAtuais);
+                statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-gray-100 text-gray-700';
+            } else if (totalSelecionados < 5) {
+                const paresRestantes = Math.max(0, 2 - paresAtuais);
+                const imparesRestantes = Math.max(0, 3 - imparesAtuais);
                 
-                if (paresRestantes > 0 || imparesRestantes > 0) {
-                    let faltam = [];
-                    if (paresRestantes > 0) faltam.push(`${paresRestantes} pares`);
-                    if (imparesRestantes > 0) faltam.push(`${imparesRestantes} ímpares`);
-                    
-                    statusEl.textContent = `📍 Faltam: ${faltam.join(' e ')}`;
-                    statusEl.className = 'text-center p-3 rounded-lg font-bold text-lg bg-blue-100 text-blue-800';
-                    dicaEl.innerHTML = `💡 <strong>Continue:</strong> Selecione mais ${faltam.join(' e ')} para seguir a estratégia`;
+                if (paresRestantes > 0 && imparesRestantes > 0) {
+                    statusEl.textContent = `📍 Faltam: ${paresRestantes} pares, ${imparesRestantes} ímpares`;
+                    statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-blue-100 text-blue-800';
+                } else if (paresRestantes > 0) {
+                    statusEl.textContent = `📍 Faltam: ${paresRestantes} pares`;
+                    statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-green-100 text-green-800';
+                } else if (imparesRestantes > 0) {
+                    statusEl.textContent = `📍 Faltam: ${imparesRestantes} ímpares`;
+                    statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-orange-100 text-orange-800';
                 } else {
                     statusEl.textContent = '✅ Estratégia completa! Continue selecionando...';
-                    statusEl.className = 'text-center p-3 rounded-lg font-bold text-lg bg-yellow-100 text-yellow-800';
-                    dicaEl.innerHTML = `💡 <strong>Perfeito:</strong> Você já tem a distribuição ideal!`;
+                    statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-yellow-100 text-yellow-800';
                 }
             } else {
-                // 5 números selecionados - avaliar resultado final
-                if (paresAtuais === metaPares && imparesAtuais === metaImpares) {
-                    statusEl.textContent = '🎯 ESTRATÉGIA PERFEITA! Distribuição idêntica ao último sorteio';
-                    statusEl.className = 'text-center p-3 rounded-lg font-bold text-lg bg-green-200 text-green-800 meta-atingida';
-                    dicaEl.innerHTML = `🏆 <strong>Excelente:</strong> Sua distribuição segue exatamente o último sorteio!`;
-                } else if (Math.abs(paresAtuais - metaPares) <= 1) {
-                    statusEl.textContent = '✅ Estratégia muito boa! Distribuição próxima';
-                    statusEl.className = 'text-center p-3 rounded-lg font-bold text-lg bg-green-100 text-green-800';
-                    dicaEl.innerHTML = `👍 <strong>Bom:</strong> Sua distribuição está próxima da estatística`;
+                if ((paresAtuais === 2 && imparesAtuais === 3) || (paresAtuais === 3 && imparesAtuais === 2)) {
+                    statusEl.textContent = '🎯 ESTRATÉGIA PERFEITA! Distribuição ideal';
+                    statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-green-200 text-green-800 meta-atingida';
+                } else if (Math.abs(paresAtuais - imparesAtuais) <= 1) {
+                    statusEl.textContent = '✅ Estratégia muito boa!';
+                    statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-green-100 text-green-800';
                 } else {
-                    statusEl.textContent = '⚠️ Estratégia diferente do padrão estatístico';
-                    statusEl.className = 'text-center p-3 rounded-lg font-bold text-lg bg-red-100 text-red-800 meta-excedida';
-                    
-                    if (paresAtuais > metaPares + 1) {
-                        dicaEl.innerHTML = `📊 <strong>Atenção:</strong> Muitos números pares (${paresAtuais}). Último sorteio teve ${metaPares}`;
-                    } else if (imparesAtuais > metaImpares + 1) {
-                        dicaEl.innerHTML = `📊 <strong>Atenção:</strong> Muitos números ímpares (${imparesAtuais}). Último sorteio teve ${metaImpares}`;
-                    } else {
-                        dicaEl.innerHTML = `⚡ <strong>Atenção:</strong> Distribuição muito diferente do último sorteio`;
-                    }
+                    statusEl.textContent = '⚠️ Desbalanceado entre pares/ímpares';
+                    statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-red-100 text-red-800';
                 }
             }
-            
-            // Atualizar análise complementar
-            atualizarAnaliseJogo();
         }
 
-        // Criar grid de números 1-80
-        function criarGridNumeros() {
-            const grid = document.getElementById('gridNumeros');
-            grid.innerHTML = '';
-            
-            for (let i = 1; i <= 80; i++) {
-                const btn = document.createElement('button');
-                btn.className = 'numero-quina';
-                btn.textContent = i.toString().padStart(2, '0');
-                btn.onclick = () => toggleNumero(i);
-                
-                // Aplicar classe de número sorteado se necessário
-                if (numerosSorteados.has(i)) {
-                    btn.classList.add('sorteado');
-                }
-                
-                grid.appendChild(btn);
+        function atualizarContadorDezenas() {
+            // Contadores por dezena
+            for (let i = 1; i <= 8; i++) {
+                const inicio = (i - 1) * 10 + 1;
+                const fim = Math.min(i * 10, 80);
+                const count = numerosDropArea.filter(num => num >= inicio && num <= fim).length;
+                document.getElementById(`dezena${i}Atual`).textContent = count;
             }
             
-            // Atualizar estado inicial
-            atualizarEstadoNumerosSorteados();
-        }
-
-        // Atualizar estado dos números sorteados
-        function atualizarEstadoNumerosSorteados() {
-            const permitir = document.getElementById('permitirNumerosSorteados').checked;
-            
-            numerosSorteados.forEach(numero => {
-                const btn = document.querySelector(`#gridNumeros button:nth-child(${numero})`);
-                if (btn) {
-                    if (permitir) {
-                        // Checkbox MARCADO: HABILITAR números sorteados
-                        btn.classList.remove('disabled');
-                        btn.style.cursor = 'pointer';
-                        btn.onclick = () => toggleNumero(numero);
-                    } else {
-                        // Checkbox DESMARCADO (padrão): DESABILITAR números sorteados
-                        btn.classList.add('disabled');
-                        btn.style.cursor = 'not-allowed';
-                        btn.onclick = () => {
-                            mostrarModalNumeroSorteado(numero);
-                        };
-                    }
-                }
-            });
-        }
-
-        // Mostrar modal explicativo para número sorteado
-        function mostrarModalNumeroSorteado(numero) {
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            modal.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                    <h3 class="font-bold text-orange-800 mb-2">🎱 Número Sorteado</h3>
-                    <p class="text-gray-700 mb-4">O número ${numero.toString().padStart(2, '0')} saiu no último concurso. Marque "Permitir usar números já sorteados" para incluí-lo nos seus jogos.</p>
-                    <div class="flex justify-end">
-                        <button class="px-4 py-2 bg-orange-500 text-white hover:bg-orange-600 rounded" onclick="this.closest('.fixed').remove()">Entendi</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-
-        // Toggle seleção de número
-        function toggleNumero(numero) {
-            // Verificar se número está bloqueado
-            if (numerosSorteados.has(numero) && !document.getElementById('permitirNumerosSorteados').checked) {
-                mostrarModalNumeroSorteado(numero);
-                return;
-            }
-
-            const btn = document.querySelector(`#gridNumeros button:nth-child(${numero})`);
-            
-            if (numerosSelecionados.includes(numero)) {
-                // Remover número
-                numerosSelecionados = numerosSelecionados.filter(n => n !== numero);
-                btn.classList.remove('selecionado');
-            } else if (numerosSelecionados.length < quantidadeFixa) {
-                // Adicionar número
-                numerosSelecionados.push(numero);
-                btn.classList.add('selecionado');
+            // Status da distribuição
+            const dezenasComNumeros = [];
+            for (let i = 1; i <= 8; i++) {
+                const inicio = (i - 1) * 10 + 1;
+                const fim = Math.min(i * 10, 80);
+                const count = numerosDropArea.filter(num => num >= inicio && num <= fim).length;
+                if (count > 0) dezenasComNumeros.push(i);
             }
             
-            atualizarContadorParesImpares();
-            validarBotaoAdicionar();
-        }
-
-        // Atualizar análise do jogo atual
-        function atualizarAnaliseJogo() {
-            document.getElementById('numerosCount').textContent = `${numerosSelecionados.length}/${quantidadeFixa}`;
+            const statusEl = document.getElementById('statusDistribuicao');
+            const totalDezenas = dezenasComNumeros.length;
             
-            // Calcular dígitos diferentes (todos os dígitos 0-9 que aparecem)
-            const digitos = new Set();
-            numerosSelecionados.forEach(num => {
-                const numStr = num.toString().padStart(2, '0');
-                // Adicionar cada dígito individual
-                for (let digit of numStr) {
-                    digitos.add(parseInt(digit));
-                }
-            });
-            
-            document.getElementById('digitosCount').textContent = digitos.size;
-            console.log(`Jogo atual: ${numerosSelecionados.map(n => n.toString().padStart(2, '0')).join(' ')} = ${digitos.size} dígitos: ${Array.from(digitos).sort().join(' ')}`);
-            atualizarSugestaoDigitos(digitos.size);
-        }
-
-        // Atualizar sugestão de dígitos
-        function atualizarSugestaoDigitos(digitosAtuais = 0) {
-            const ultimoDigitos = window.digitosUltimoSorteio || 8;
-            const sugestaoEl = document.getElementById('sugestaoDigitos');
-            
-            let sugestao = `Último sorteio usou ${ultimoDigitos} dígitos diferentes. `;
-            
-            if (digitosAtuais === 0) {
-                sugestao += `Sugerimos: ${ultimoDigitos - 1} (pequeno), ${ultimoDigitos} (médio) ou ${ultimoDigitos + 1} (alto).`;
+            if (numerosDropArea.length === 0) {
+                statusEl.textContent = '🎯 Ideal: distribuir entre 3-4 dezenas diferentes';
+                statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-gray-100 text-gray-700';
+            } else if (totalDezenas >= 3 && totalDezenas <= 4) {
+                statusEl.textContent = '🎯 DISTRIBUIÇÃO PERFEITA! Números bem espalhados';
+                statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-green-200 text-green-800 meta-atingida';
+            } else if (totalDezenas >= 2) {
+                statusEl.textContent = '✅ Boa distribuição!';
+                statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-green-100 text-green-800';
             } else {
-                if (digitosAtuais < ultimoDigitos - 1) {
-                    sugestao += `Atual: ${digitosAtuais} (muito pequeno) 📉`;
-                } else if (digitosAtuais === ultimoDigitos - 1) {
-                    sugestao += `Atual: ${digitosAtuais} (pequeno) ✅`;
-                } else if (digitosAtuais === ultimoDigitos) {
-                    sugestao += `Atual: ${digitosAtuais} (médio) ✅`;
-                } else if (digitosAtuais === ultimoDigitos + 1) {
-                    sugestao += `Atual: ${digitosAtuais} (alto) ✅`;
-                } else {
-                    sugestao += `Atual: ${digitosAtuais} (muito alto) 📈`;
-                }
+                statusEl.textContent = '⚠️ Números muito concentrados';
+                statusEl.className = 'text-center p-2 rounded-lg font-bold text-sm bg-red-100 text-red-800';
             }
-            
-            sugestaoEl.textContent = sugestao;
         }
 
-        // Validar botão adicionar
         function validarBotaoAdicionar() {
             const btn = document.getElementById('adicionarJogo');
-            btn.disabled = numerosSelecionados.length !== quantidadeFixa;
+            const quantidadeNecessaria = parseInt(document.getElementById('quantidadeDezenas').value);
+            btn.disabled = numerosDropArea.length !== quantidadeNecessaria;
         }
 
-        // Configurar event listeners
-        function configurarEventListeners() {
-            // Controle de números sorteados
-            document.getElementById('permitirNumerosSorteados').addEventListener('change', () => {
-                atualizarEstadoNumerosSorteados();
-            });
-
-            // Botões de ação do jogo
-            document.getElementById('limparJogo').addEventListener('click', limparSelecao);
-            document.getElementById('randomizarJogo').addEventListener('click', randomizarJogo);
-            document.getElementById('adicionarJogo').addEventListener('click', adicionarJogo);
-            
-            // Controles dos jogos
-            document.getElementById('mostrarOrdemCrescente').addEventListener('change', atualizarVisualizacaoJogos);
-            document.getElementById('limparTodos').addEventListener('click', limparTodosJogos);
-            
-            // Downloads
-            document.getElementById('downloadHTML').addEventListener('click', () => downloadJogos('html'));
-            document.getElementById('downloadTXT').addEventListener('click', () => downloadJogos('txt'));
-            document.getElementById('downloadXLSX').addEventListener('click', () => downloadJogos('xlsx'));
-            
-            // Modal
-            document.getElementById('comoFuncionaBtn').addEventListener('click', () => {
-                document.getElementById('modalComoFunciona').classList.remove('hidden');
-            });
-            document.getElementById('fecharModal').addEventListener('click', () => {
-                document.getElementById('modalComoFunciona').classList.add('hidden');
-            });
-        }
-
-        // Limpar seleção atual
         function limparSelecao() {
-            numerosSelecionados = [];
+            numerosDropArea = [];
             document.querySelectorAll('.numero-quina').forEach(btn => {
                 btn.classList.remove('selecionado');
             });
+            atualizarVisualizacaoDropArea();
             atualizarContadorParesImpares();
+            atualizarContadorDezenas();
             validarBotaoAdicionar();
         }
 
-        // Randomizar jogo respeitando números sorteados
         function randomizarJogo() {
             limparSelecao();
-            
-            // Randomizar números (considerando permissão de números sorteados)
-            const permiteSorteados = document.getElementById('permitirNumerosSorteados').checked;
+            const quantidade = parseInt(document.getElementById('quantidadeDezenas').value);
             let numerosDisponiveis = Array.from({length: 80}, (_, i) => i + 1);
             
-            if (!permiteSorteados) {
-                // Filtrar números sorteados se não permitidos
-                numerosDisponiveis = numerosDisponiveis.filter(num => !numerosSorteados.has(num));
+            if (!permitirNumerosSorteados) {
+                numerosDisponiveis = numerosDisponiveis.filter(n => !numerosSorteados.has(n));
             }
             
-            while (numerosSelecionados.length < quantidadeFixa && numerosDisponiveis.length > 0) {
+            while (numerosDropArea.length < quantidade && numerosDisponiveis.length > 0) {
                 const index = Math.floor(Math.random() * numerosDisponiveis.length);
                 const numero = numerosDisponiveis.splice(index, 1)[0];
-                numerosSelecionados.push(numero);
+                numerosDropArea.push(numero);
                 
-                const btn = document.querySelector(`#gridNumeros button:nth-child(${numero})`);
-                btn.classList.add('selecionado');
+                const btn = document.querySelector(`[data-numero="${numero}"]`);
+                if (btn) btn.classList.add('selecionado');
             }
             
+            atualizarVisualizacaoDropArea();
             atualizarContadorParesImpares();
+            atualizarContadorDezenas();
             validarBotaoAdicionar();
         }
 
-        // Adicionar jogo à lista
         function adicionarJogo() {
-            if (numerosSelecionados.length !== quantidadeFixa) return;
+            const quantidade = parseInt(document.getElementById('quantidadeDezenas').value);
+            const custo = sistemaValores.obterValor(quantidade);
             
             const jogo = {
                 id: Date.now(),
-                numeros: [...numerosSelecionados].sort((a, b) => a - b),
-                custo: custoJogo,
-                digitosDiferentes: (() => {
-                    const digitos = new Set();
-                    numerosSelecionados.forEach(num => {
-                        const numStr = num.toString().padStart(2, '0');
-                        for (let digit of numStr) {
-                            digitos.add(parseInt(digit));
-                        }
-                    });
-                    return digitos.size;
-                })(),
-                pares: numerosSelecionados.filter(n => n % 2 === 0).length,
-                impares: numerosSelecionados.filter(n => n % 2 !== 0).length
+                numeros: [...numerosDropArea], // Manter ordem original de seleção
+                quantidade: quantidade,
+                custo: custo,
+                pares: numerosDropArea.filter(n => n % 2 === 0).length,
+                impares: numerosDropArea.filter(n => n % 2 !== 0).length,
+                dezenas: calcularDezenas(numerosDropArea),
+                origem: 'Manual'
             };
             
-            jogosAdicionados.push(jogo);
+            meusJogos.push(jogo);
             limparSelecao();
             atualizarVisualizacaoJogos();
             atualizarCustoTotal();
+            
+            showCustomAlert('✅ Sucesso', 'Jogo adicionado com sucesso!');
         }
 
-        // Atualizar visualização dos jogos
+        function calcularDezenas(numeros) {
+            const dezenas = [];
+            for (let i = 1; i <= 8; i++) {
+                const inicio = (i - 1) * 10 + 1;
+                const fim = Math.min(i * 10, 80);
+                const count = numeros.filter(num => num >= inicio && num <= fim).length;
+                if (count > 0) dezenas.push(i);
+            }
+            return dezenas.length;
+        }
+
+        // ===== GERAÇÃO MINIMALISTA =====
+
+        function gerarJogosMinimalistas() {
+            const qtdJogos = parseInt(document.getElementById('qtdJogosMin').value);
+            const dezenasJogo = parseInt(document.getElementById('dezenasPorJogoMin').value);
+            const estrategia = document.getElementById('estrategiaMin').value;
+            
+            console.log('🎯 Configuração Quina:', {qtdJogos, dezenasJogo, estrategia}); // Debug
+            
+            const regrasSelecionadas = [];
+            document.querySelectorAll('.regra-checkbox:checked').forEach(checkbox => {
+                regrasSelecionadas.push(checkbox.id);
+            });
+            
+            if (regrasSelecionadas.length === 0) {
+                showCustomAlert('⚠️ Nenhuma Regra', 'Selecione pelo menos uma regra minimalista!');
+                return;
+            }
+            
+            const jogosGerados = [];
+            
+            for (let i = 0; i < qtdJogos; i++) {
+                const jogo = gerarJogoComRegrasSelecionadas(dezenasJogo, estrategia, regrasSelecionadas, i);
+                console.log(`🎮 Jogo ${i+1} gerado com ${jogo.length} números:`, jogo); // Debug
+                
+                // FORÇAR o número correto de dezenas
+                const jogoFinal = jogo.slice(0, dezenasJogo);
+                
+                jogosGerados.push({
+                    id: Date.now() + i,
+                    numeros: jogoFinal,
+                    quantidade: dezenasJogo,
+                    custo: sistemaValores.obterValor(dezenasJogo),
+                    estrategia: estrategia,
+                    regras: regrasSelecionadas.length,
+                    origem: `Minimalista (${regrasSelecionadas.length} regras)`
+                });
+            }
+            
+            exibirJogosMinimalistas(jogosGerados);
+        }
+
+        function gerarJogoComRegrasSelecionadas(quantidade, estrategia, regras, indiceJogo = 0) {
+            const numerosBase = [];
+            const data = new Date();
+            
+            // Obter dados do contexto
+            const concurso = ultimoResultado ? ultimoResultado.numero + 1 : 6701;
+            const premio = ultimoResultado ? Math.floor(ultimoResultado.valorEstimadoProximoConcurso / 10000) : 150;
+            const ano = data.getFullYear();
+            const mes = data.getMonth() + 1;
+            const dia = data.getDate();
+            
+            // Adicionar variação baseada no índice do jogo
+            const variacao = indiceJogo * 5 + Math.floor(Math.random() * 30);
+            
+            // ===== REGRAS ESPECÍFICAS PARA QUINA =====
+            
+            // R1 - Números Diretos
+            if (regras.includes('r1-direto')) {
+                if (dia <= 80) numerosBase.push(dia);
+                if (mes <= 80) numerosBase.push(mes);
+                const concursoLimitado = concurso % 80;
+                if (concursoLimitado > 0) numerosBase.push(concursoLimitado);
+                const premioLimitado = premio % 80;
+                if (premioLimitado > 0) numerosBase.push(premioLimitado);
+            }
+            
+            // R2 - Soma de Componentes
+            if (regras.includes('r2-soma')) {
+                const soma1 = (dia + mes) % 80 || 80;
+                const soma2 = (concurso % 100 + premio) % 80 || 80;
+                const soma3 = (ano % 100 + dia) % 80 || 80;
+                numerosBase.push(soma1, soma2, soma3);
+            }
+            
+            // R3 - Multiplicação
+            if (regras.includes('r3-multiplicacao')) {
+                const dobro = (dia * 2) % 80 || 80;
+                const triplo = (mes * 3) % 80 || 80;
+                numerosBase.push(dobro, triplo);
+            }
+            
+            // R4 - Diferença
+            if (regras.includes('r4-diferenca')) {
+                const diff1 = Math.abs(dia - mes);
+                const diff2 = Math.abs(concurso % 100 - premio % 100);
+                if (diff1 > 0 && diff1 <= 80) numerosBase.push(diff1);
+                if (diff2 > 0 && diff2 <= 80) numerosBase.push(diff2);
+            }
+            
+            // R5 - Inverso
+            if (regras.includes('r5-inverso')) {
+                if (dia >= 10) {
+                    const diaInvertido = parseInt(dia.toString().split('').reverse().join(''));
+                    if (diaInvertido <= 80) numerosBase.push(diaInvertido);
+                }
+                if (premio >= 10) {
+                    const premioInvertido = parseInt(premio.toString().split('').reverse().join(''));
+                    if (premioInvertido <= 80) numerosBase.push(premioInvertido);
+                }
+            }
+            
+            // R6 - Vizinhos
+            if (regras.includes('r6-vizinhos')) {
+                [dia, mes, premio % 80].forEach(base => {
+                    if (base > 0 && base <= 80) {
+                        const anterior = base - 1 > 0 ? base - 1 : 80;
+                        const proximo = base + 1 <= 80 ? base + 1 : 1;
+                        numerosBase.push(anterior, proximo);
+                    }
+                });
+            }
+            
+            // R7 - Soma Cruzada
+            if (regras.includes('r7-cruzada')) {
+                const cruzada1 = (dia + premio) % 80 || 80;
+                const cruzada2 = (mes + concurso % 100) % 80 || 80;
+                numerosBase.push(cruzada1, cruzada2);
+            }
+            
+            // R8 - Módulo 80
+            if (regras.includes('r8-modulo')) {
+                const anoMod = ano % 80;
+                const concursoMod = concurso % 80;
+                if (anoMod > 0) numerosBase.push(anoMod);
+                if (concursoMod > 0) numerosBase.push(concursoMod);
+            }
+            
+            // R9 - Fibonacci
+            if (regras.includes('r9-fibonacci')) {
+                let fib1 = dia % 80;
+                let fib2 = mes % 80;
+                for (let i = 0; i < 3; i++) {
+                    const fib3 = (fib1 + fib2) % 80 || 80;
+                    numerosBase.push(fib3);
+                    fib1 = fib2;
+                    fib2 = fib3;
+                }
+            }
+            
+            // R10 - Números Primos
+            if (regras.includes('r10-primos')) {
+                const primos = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79];
+                numerosBase.push(...primos.slice(0, 4));
+            }
+            
+            // R11 - Múltiplos de 5
+            if (regras.includes('r11-multiplos5')) {
+                const multiplos = [];
+                for (let i = 5; i <= 80; i += 5) {
+                    multiplos.push(i);
+                }
+                numerosBase.push(...multiplos.slice(0, 3));
+            }
+            
+            // R12 - Terminação
+            if (regras.includes('r12-terminacao')) {
+                const terminacao = dia % 10;
+                for (let i = terminacao; i <= 80; i += 10) {
+                    if (i > 0) numerosBase.push(i);
+                }
+            }
+            
+            // R13 - Raiz Quadrada
+            if (regras.includes('r13-raiz')) {
+                const raizPremio = Math.floor(Math.sqrt(premio));
+                const raizConcurso = Math.floor(Math.sqrt(concurso % 100));
+                if (raizPremio > 0 && raizPremio <= 80) numerosBase.push(raizPremio);
+                if (raizConcurso > 0 && raizConcurso <= 80) numerosBase.push(raizConcurso);
+            }
+            
+            // R14 - Soma de Dígitos
+            if (regras.includes('r14-somadigitos')) {
+                const somaDigitosAno = ano.toString().split('').reduce((sum, d) => sum + parseInt(d), 0);
+                const somaDigitosConcurso = concurso.toString().split('').reduce((sum, d) => sum + parseInt(d), 0);
+                if (somaDigitosAno <= 80) numerosBase.push(somaDigitosAno);
+                if (somaDigitosConcurso <= 80) numerosBase.push(somaDigitosConcurso);
+            }
+            
+            // R15 - Dezenas Extremas
+            if (regras.includes('r15-extremas')) {
+                // Números de 1-10
+                for (let i = 1; i <= 10; i++) numerosBase.push(i);
+                // Números de 71-80
+                for (let i = 71; i <= 80; i++) numerosBase.push(i);
+            }
+            
+            // R16 - Médias
+            if (regras.includes('r16-medias')) {
+                const media1 = Math.floor((dia + mes) / 2);
+                const media2 = Math.floor((premio + concurso % 100) / 2);
+                if (media1 > 0 && media1 <= 80) numerosBase.push(media1);
+                if (media2 > 0 && media2 <= 80) numerosBase.push(media2);
+            }
+            
+            // Adicionar números aleatórios para garantir variação
+            for (let i = 0; i < 8; i++) {
+                const aleatorio = Math.floor(Math.random() * 80) + 1;
+                numerosBase.push(aleatorio);
+            }
+            
+            // Remover duplicatas e garantir que estão na faixa 1-80
+            let numerosValidos = [...new Set(numerosBase)].filter(n => n >= 1 && n <= 80);
+            
+            // R17 - Filtros Inteligentes
+            if (regras.includes('r17-filtros')) {
+                // Evitar sequências muito óbvias
+                numerosValidos = numerosValidos.filter((num, index) => {
+                    const sequencia = numerosValidos.slice(index, index + 5);
+                    const isSequencial = sequencia.length === 5 && 
+                        sequencia.every((n, i) => i === 0 || n === sequencia[i-1] + 1);
+                    return !isSequencial;
+                });
+                
+                // Evitar muitos números do último sorteio
+                if (numerosSorteados.size > 0) {
+                    const numerosDoUltimoSorteio = numerosValidos.filter(n => numerosSorteados.has(n));
+                    if (numerosDoUltimoSorteio.length > 2) {
+                        numerosValidos = numerosValidos.filter(n => !numerosSorteados.has(n));
+                        numerosValidos.push(...numerosDoUltimoSorteio.slice(0, 2));
+                    }
+                }
+            }
+            
+            // Completar com números aleatórios
+            const numerosDisponiveis = Array.from({length: 80}, (_, i) => i + 1)
+                .filter(n => !numerosValidos.includes(n));
+            
+            // Embaralhar números disponíveis
+            for (let i = numerosDisponiveis.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [numerosDisponiveis[i], numerosDisponiveis[j]] = [numerosDisponiveis[j], numerosDisponiveis[i]];
+            }
+            
+            let jogo = [...numerosValidos];
+            
+            // R18 - Balanceamento
+            if (regras.includes('r18-balanceamento')) {
+                // Aplicar estratégia
+                let targetPares, targetImpares;
+                
+                switch (estrategia) {
+                    case 'equilibrada':
+                        targetPares = Math.floor(quantidade / 2);
+                        targetImpares = quantidade - targetPares;
+                        break;
+                    case 'pares':
+                        targetPares = Math.ceil(quantidade * 0.7);
+                        targetImpares = quantidade - targetPares;
+                        break;
+                    case 'impares':
+                        targetImpares = Math.ceil(quantidade * 0.7);
+                        targetPares = quantidade - targetImpares;
+                        break;
+                    case 'extremas':
+                        // Focar em números extremos
+                        const extremos = numerosDisponiveis.filter(n => n <= 10 || n >= 71);
+                        jogo.push(...extremos.slice(0, Math.min(3, extremos.length)));
+                        targetPares = Math.floor(quantidade / 2);
+                        targetImpares = quantidade - targetPares;
+                        break;
+                    case 'centrais':
+                        // Focar em números centrais
+                        const centrais = numerosDisponiveis.filter(n => n >= 31 && n <= 50);
+                        jogo.push(...centrais.slice(0, Math.min(3, centrais.length)));
+                        targetPares = Math.floor(quantidade / 2);
+                        targetImpares = quantidade - targetPares;
+                        break;
+                    default:
+                        targetPares = Math.floor(Math.random() * (quantidade + 1));
+                        targetImpares = quantidade - targetPares;
+                }
+                
+                // Completar com base na estratégia
+                while (jogo.length < quantidade && numerosDisponiveis.length > 0) {
+                    const paresAtuais = jogo.filter(n => n % 2 === 0).length;
+                    const imparesAtuais = jogo.filter(n => n % 2 !== 0).length;
+                    
+                    let preferiaPar = paresAtuais < targetPares;
+                    if (imparesAtuais >= targetImpares) preferiaPar = true;
+                    if (paresAtuais >= targetPares) preferiaPar = false;
+                    
+                    const candidatos = numerosDisponiveis.filter(n => 
+                        preferiaPar ? n % 2 === 0 : n % 2 !== 0
+                    );
+                    
+                    if (candidatos.length === 0) {
+                        const index = Math.floor(Math.random() * numerosDisponiveis.length);
+                        jogo.push(numerosDisponiveis.splice(index, 1)[0]);
+                    } else {
+                        const index = Math.floor(Math.random() * candidatos.length);
+                        const numeroEscolhido = candidatos[index];
+                        jogo.push(numeroEscolhido);
+                        numerosDisponiveis.splice(numerosDisponiveis.indexOf(numeroEscolhido), 1);
+                    }
+                }
+            } else {
+                // Completar aleatoriamente
+                while (jogo.length < quantidade && numerosDisponiveis.length > 0) {
+                    const index = Math.floor(Math.random() * numerosDisponiveis.length);
+                    jogo.push(numerosDisponiveis.splice(index, 1)[0]);
+                }
+            }
+            
+            // R19 - Otimização Final
+            if (regras.includes('r19-otimizacao')) {
+                // Garantir que o jogo final tenha exatamente a quantidade correta
+                jogo = jogo.slice(0, quantidade);
+                
+                // Remover duplicatas finais
+                jogo = [...new Set(jogo)];
+                
+                // Se ficou com menos números, completar
+                while (jogo.length < quantidade && numerosDisponiveis.length > 0) {
+                    const numeroAdicional = numerosDisponiveis.splice(
+                        Math.floor(Math.random() * numerosDisponiveis.length), 1
+                    )[0];
+                    if (numeroAdicional) jogo.push(numeroAdicional);
+                }
+            }
+            
+            return jogo;
+        }
+
+        function exibirJogosMinimalistas(jogos) {
+            const resultadosDiv = document.getElementById('resultadosMin');
+            const listaJogos = document.getElementById('listaJogosMin');
+            
+            listaJogos.innerHTML = '';
+            
+            jogos.forEach((jogo, index) => {
+                const jogoDiv = document.createElement('div');
+                jogoDiv.className = 'jogo-minimalista-card';
+                
+                const pares = jogo.numeros.filter(n => n % 2 === 0).length;
+                const impares = jogo.numeros.filter(n => n % 2 !== 0).length;
+                const dezenas = calcularDezenas(jogo.numeros);
+                
+                jogoDiv.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold text-purple-600 text-sm">Jogo ${index + 1}</span>
+                        <div class="flex gap-1">
+                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">${pares}P</span>
+                            <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded">${impares}I</span>
+                            <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">${dezenas}D</span>
+                            <span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">${jogo.regras}R</span>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">${formatarMoeda(jogo.custo)}</span>
+                            <button onclick="editarJogoMinimalistaPorId('${jogo.id}')" class="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded transition-all duration-200 hover:scale-105" title="Editar jogo">
+                                ✏️
+                            </button>
+                            <button onclick="excluirJogoMinimalistaPorId('${jogo.id}')" class="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-all duration-200 hover:scale-105" title="Excluir jogo">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                        ${jogo.numeros.map(num => `<span class="numero-minimalista">${num.toString().padStart(2, '0')}</span>`).join('')}
+                    </div>
+                    <div class="text-xs text-gray-600">
+                        ${jogo.estrategia} | ${jogo.numeros.length} dezenas | ${jogo.regras} regras | ${dezenas} dezenas diferentes
+                    </div>
+                `;
+                
+                listaJogos.appendChild(jogoDiv);
+            });
+            
+            resultadosDiv.classList.remove('hidden');
+            window.jogosMinimalistasGerados = jogos;
+        }
+
+        function adicionarTodosJogosMinimalistas() {
+            if (!window.jogosMinimalistasGerados || window.jogosMinimalistasGerados.length === 0) {
+                showCustomAlert('⚠️ Sem Jogos', 'Gere alguns jogos minimalistas primeiro!');
+                return;
+            }
+            
+            window.jogosMinimalistasGerados.forEach(jogoMin => {
+                const jogo = {
+                    id: Date.now() + Math.random(),
+                    numeros: [...jogoMin.numeros],
+                    quantidade: jogoMin.quantidade,
+                    custo: jogoMin.custo,
+                    pares: jogoMin.numeros.filter(n => n % 2 === 0).length,
+                    impares: jogoMin.numeros.filter(n => n % 2 !== 0).length,
+                    dezenas: calcularDezenas(jogoMin.numeros),
+                    origem: jogoMin.origem
+                };
+                meusJogos.push(jogo);
+            });
+            
+            atualizarVisualizacaoJogos();
+            atualizarCustoTotal();
+            
+            showCustomAlert('✅ Sucesso', `${window.jogosMinimalistasGerados.length} jogo(s) adicionado(s)!`);
+        }
+
+        // ===== VISUALIZAÇÃO E CONTROLES =====
+
         function atualizarVisualizacaoJogos() {
             const lista = document.getElementById('listaJogos');
             const ordemCrescente = document.getElementById('mostrarOrdemCrescente').checked;
             
-            if (jogosAdicionados.length === 0) {
+            if (meusJogos.length === 0) {
                 lista.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhum jogo adicionado ainda</p>';
                 return;
             }
             
             lista.innerHTML = '';
-            jogosAdicionados.forEach((jogo, index) => {
+            meusJogos.forEach((jogo, index) => {
                 const jogoDiv = document.createElement('div');
                 jogoDiv.className = 'jogo-card';
                 
@@ -1030,9 +2122,9 @@
                     <div class="flex justify-between items-center mb-2">
                         <span class="font-bold text-quina">Jogo ${index + 1}</span>
                         <div class="flex gap-2">
-                            <span class="digito-badge">${jogo.digitosDiferentes} dígitos</span>
-                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">${jogo.pares}P</span>
-                            <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">${jogo.impares}I</span>
+                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">${jogo.pares || 0}P</span>
+                            <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded">${jogo.impares || 0}I</span>
+                            <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">${jogo.dezenas || 0}D</span>
                             <button onclick="removerJogo(${jogo.id})" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs">
                                 🗑️
                             </button>
@@ -1044,7 +2136,8 @@
                         ).join('')}
                     </div>
                     <div class="text-sm text-gray-600">
-                        5 números - ${formatarMoeda(jogo.custo)} | ${jogo.pares} pares, ${jogo.impares} ímpares
+                        ${jogo.numeros.length} dezenas - ${formatarMoeda(jogo.custo)}
+                        ${jogo.origem ? `<span class="text-orange-600"> | ${jogo.origem}</span>` : ''}
                     </div>
                 `;
                 
@@ -1052,96 +2145,57 @@
             });
         }
 
-        // Remover jogo específico
         function removerJogo(id) {
-            jogosAdicionados = jogosAdicionados.filter(jogo => jogo.id !== id);
-            atualizarVisualizacaoJogos();
-            atualizarCustoTotal();
-        }
-
-        // Limpar todos os jogos
-        function limparTodosJogos() {
-            if (jogosAdicionados.length === 0) return;
-            
-            // Modal customizado ao invés de confirm()
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            modal.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                    <p class="text-gray-700 mb-4">Tem certeza que deseja remover todos os jogos?</p>
-                    <div class="flex justify-end space-x-3">
-                        <button id="cancelarLimpar" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                        <button id="confirmarLimpar" class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded">Confirmar</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            document.getElementById('cancelarLimpar').onclick = () => {
-                document.body.removeChild(modal);
-            };
-            document.getElementById('confirmarLimpar').onclick = () => {
-                jogosAdicionados = [];
+            showCustomConfirm('Tem certeza que deseja excluir este jogo?', () => {
+                meusJogos = meusJogos.filter(jogo => jogo.id !== id);
                 atualizarVisualizacaoJogos();
                 atualizarCustoTotal();
-                document.body.removeChild(modal);
-            };
+                showCustomAlert('✅ Removido', 'Jogo excluído!');
+            });
         }
 
-        // Atualizar custo total
+        function limparTodosJogos() {
+            if (meusJogos.length === 0) return;
+            
+            showCustomConfirm('Tem certeza que deseja remover todos os jogos?', () => {
+                meusJogos = [];
+                atualizarVisualizacaoJogos();
+                atualizarCustoTotal();
+            });
+        }
+
         function atualizarCustoTotal() {
-            const total = jogosAdicionados.length * custoJogo;
+            const total = meusJogos.reduce((sum, jogo) => sum + jogo.custo, 0);
             document.getElementById('custoTotal').textContent = formatarMoeda(total);
-            document.getElementById('totalJogos').textContent = jogosAdicionados.length;
+            document.getElementById('totalJogos').textContent = meusJogos.length;
         }
 
-        // Formatar valor monetário
-        function formatarMoeda(valor) {
-            return new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL'
-            }).format(valor);
-        }
+        // ===== DOWNLOADS =====
 
-        // Downloads
         function downloadJogos(formato) {
-            if (jogosAdicionados.length === 0) {
-                // Modal customizado ao invés de alert()
-                const modal = document.createElement('div');
-                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-                modal.innerHTML = `
-                    <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                        <p class="text-gray-700 mb-4">Adicione pelo menos um jogo antes de fazer o download!</p>
-                        <div class="flex justify-end">
-                            <button class="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded" onclick="this.closest('.fixed').remove()">OK</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
+            if (meusJogos.length === 0) {
+                showCustomAlert('⚠️ Sem Jogos', 'Adicione jogos primeiro!');
                 return;
             }
             
-            const jogosOrdenados = jogosAdicionados.map(jogo => ({
-                ...jogo,
-                numeros: [...jogo.numeros].sort((a, b) => a - b)
-            }));
-            
             switch (formato) {
-                case 'html':
-                    downloadHTML(jogosOrdenados);
-                    break;
-                case 'txt':
-                    downloadTXT(jogosOrdenados);
-                    break;
-                case 'xlsx':
-                    downloadXLSX(jogosOrdenados);
-                    break;
+                case 'txt': downloadTXT(); break;
+                case 'html': downloadHTML(); break;
+                case 'xlsx': downloadXLSX(); break;
             }
         }
 
-        // Download HTML
-        function downloadHTML(jogos) {
-            const total = jogos.length * custoJogo;
+        function downloadTXT() {
+            let txt = '';
+            meusJogos.forEach((jogo, index) => {
+                txt += jogo.numeros.map(n => n.toString().padStart(2, '0')).join(' ');
+                if (index < meusJogos.length - 1) txt += '\n';
+            });
+            baixarArquivo(txt, 'quina-jogos.txt', 'text/plain');
+        }
+
+        function downloadHTML() {
+            const total = meusJogos.reduce((sum, jogo) => sum + jogo.custo, 0);
             const data = new Date().toLocaleDateString('pt-BR');
             
             let html = `<!DOCTYPE html>
@@ -1151,36 +2205,36 @@
     <title>Quina - Meus Jogos</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { text-align: center; margin-bottom: 30px; color: white; background: #260184; padding: 20px; border-radius: 10px; }
+        .header { text-align: center; margin-bottom: 30px; color: #260184; }
         .jogo { margin: 10px 0; padding: 15px; border: 2px solid #260184; border-radius: 8px; }
         .numero { display: inline-block; width: 35px; height: 35px; background: #260184; color: white; 
-                 border-radius: 50%; text-align: center; line-height: 35px; margin: 2px; font-weight: bold; font-size: 14px; }
+                 border-radius: 50%; text-align: center; line-height: 35px; margin: 2px; font-weight: bold; }
         .total { text-align: center; margin-top: 20px; font-size: 18px; font-weight: bold; color: #260184; }
-        .pares-impares { font-size: 12px; color: #666; margin-top: 5px; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🎱 QUINA - MEUS JOGOS</h1>
+        <h1>🎯 QUINA - MEUS JOGOS</h1>
         <p>Gerado em: ${data}</p>
     </div>`;
             
-            jogos.forEach((jogo, index) => {
+            meusJogos.forEach((jogo, index) => {
                 html += `
     <div class="jogo">
-        <h3>Jogo ${index + 1} - 5 números - ${formatarMoeda(jogo.custo)}</h3>
+        <h3>Jogo ${index + 1} - ${jogo.numeros.length} dezenas - ${formatarMoeda(jogo.custo)}</h3>
         <div>
             ${jogo.numeros.map(num => `<span class="numero">${num.toString().padStart(2, '0')}</span>`).join('')}
         </div>
-        <div class="pares-impares">
-            ${jogo.digitosDiferentes} dígitos diferentes | ${jogo.pares} pares, ${jogo.impares} ímpares
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+            ${jogo.pares} pares, ${jogo.impares} ímpares, ${jogo.dezenas} dezenas diferentes
+            ${jogo.origem ? ` | Origem: ${jogo.origem}` : ''}
         </div>
     </div>`;
             });
             
             html += `
     <div class="total">
-        Total: ${jogos.length} jogo(s) - ${formatarMoeda(total)}
+        Total: ${meusJogos.length} jogo(s) - ${formatarMoeda(total)}
     </div>
 </body>
 </html>`;
@@ -1188,39 +2242,26 @@
             baixarArquivo(html, 'quina-jogos.html', 'text/html');
         }
 
-        // Download TXT - Somente números
-        function downloadTXT(jogos) {
-            let txt = '';
-            
-            jogos.forEach((jogo, index) => {
-                txt += jogo.numeros.map(n => n.toString().padStart(2, '0')).join(' ');
-                if (index < jogos.length - 1) {
-                    txt += '\n';
-                }
-            });
-            
-            baixarArquivo(txt, 'quina-jogos.txt', 'text/plain');
-        }
-
-        // Download XLSX
-        function downloadXLSX(jogos) {
+        function downloadXLSX() {
             const dados = [
-                ['Jogo', 'Números', 'Dígitos Diferentes', 'Pares', 'Ímpares', 'Custo']
+                ['Jogo', 'Dezenas', 'Números', 'Pares', 'Ímpares', 'Dezenas Diferentes', 'Custo', 'Origem']
             ];
             
-            jogos.forEach((jogo, index) => {
+            meusJogos.forEach((jogo, index) => {
                 dados.push([
                     `Jogo ${index + 1}`,
+                    jogo.numeros.length,
                     jogo.numeros.map(n => n.toString().padStart(2, '0')).join(' - '),
-                    jogo.digitosDiferentes,
                     jogo.pares,
                     jogo.impares,
-                    jogo.custo
+                    jogo.dezenas,
+                    jogo.custo,
+                    jogo.origem || 'Manual'
                 ]);
             });
             
-            const total = jogos.length * custoJogo;
-            dados.push(['', 'TOTAL:', '', '', jogos.length + ' jogo(s)', total]);
+            const total = meusJogos.reduce((sum, jogo) => sum + jogo.custo, 0);
+            dados.push(['', '', 'TOTAL:', '', '', '', total, '']);
             
             const ws = XLSX.utils.aoa_to_sheet(dados);
             const wb = XLSX.utils.book_new();
@@ -1228,7 +2269,15 @@
             XLSX.writeFile(wb, 'quina-jogos.xlsx');
         }
 
-        // Função auxiliar para baixar arquivo
+        // ===== FUNÇÕES AUXILIARES =====
+
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor);
+        }
+
         function baixarArquivo(conteudo, nomeArquivo, tipoMime) {
             const blob = new Blob([conteudo], { type: tipoMime });
             const url = window.URL.createObjectURL(blob);
@@ -1239,6 +2288,152 @@
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+        }
+
+        function showCustomAlert(titulo, mensagem) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <h3 class="font-bold text-quina mb-2">${titulo}</h3>
+                    <p class="text-gray-700 mb-4" style="white-space: pre-line;">${mensagem}</p>
+                    <div class="flex justify-end">
+                        <button class="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded" onclick="this.closest('.fixed').remove()">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function showCustomConfirm(message, onConfirm) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4';
+            
+            const messageEl = document.createElement('p');
+            messageEl.className = 'text-gray-700 mb-4';
+            messageEl.style.whiteSpace = 'pre-line';
+            messageEl.textContent = message;
+            
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.className = 'flex justify-end space-x-3';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'px-4 py-2 text-gray-600 hover:bg-gray-100 rounded';
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.onclick = () => modal.remove();
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded';
+            confirmBtn.textContent = 'Confirmar';
+            confirmBtn.onclick = () => {
+                modal.remove();
+                onConfirm();
+            };
+            
+            buttonsDiv.appendChild(cancelBtn);
+            buttonsDiv.appendChild(confirmBtn);
+            modalContent.appendChild(messageEl);
+            modalContent.appendChild(buttonsDiv);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+        }
+
+        // ===== FUNÇÕES PARA JOGOS MINIMALISTAS =====
+
+        function editarJogoMinimalistaPorId(id) {
+            if (!window.jogosMinimalistasGerados || window.jogosMinimalistasGerados.length === 0) {
+                showCustomAlert('⚠️ Erro', 'Lista de jogos não encontrada ou vazia!');
+                return;
+            }
+            
+            const jogo = window.jogosMinimalistasGerados.find(j => j.id.toString() === id.toString());
+            if (!jogo) {
+                showCustomAlert('⚠️ Erro', 'Jogo não encontrado!');
+                return;
+            }
+            
+            const numerosParaEditar = jogo.numeros.slice(0, jogo.quantidade);
+            
+            showCustomConfirm(
+                `Deseja editar este jogo?\n\nNúmeros: ${numerosParaEditar.map(n => n.toString().padStart(2, '0')).join(' - ')}\n\nOs números serão carregados na seção manual para edição.`, 
+                () => {
+                    // Limpar seleção atual
+                    limparSelecao();
+                    
+                    // Definir quantidade de dezenas
+                    document.getElementById('quantidadeDezenas').value = numerosParaEditar.length;
+                    atualizarVisualizacaoDropArea();
+                    
+                    // Carregar números na área de drop
+                    numerosParaEditar.forEach(numero => {
+                        numerosDropArea.push(numero);
+                        const btn = document.querySelector(`[data-numero="${numero}"]`);
+                        if (btn) btn.classList.add('selecionado');
+                    });
+                    
+                    // Atualizar visualização
+                    atualizarVisualizacaoDropArea();
+                    atualizarContadorParesImpares();
+                    atualizarContadorDezenas();
+                    validarBotaoAdicionar();
+                    
+                    // Remover jogo da lista minimalista
+                    window.jogosMinimalistasGerados = window.jogosMinimalistasGerados.filter(j => j.id.toString() !== id.toString());
+                    exibirJogosMinimalistas(window.jogosMinimalistasGerados);
+                    
+                    // Rolar para a seção manual
+                    document.querySelector('#dropZone').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    
+                    showCustomAlert('✅ Jogo Carregado', `${numerosParaEditar.length} números carregados na seção manual!\n\nVocê pode editá-los e adicionar novamente.`);
+                }
+            );
+        }
+
+        function excluirJogoMinimalistaPorId(id) {
+            if (!window.jogosMinimalistasGerados || window.jogosMinimalistasGerados.length === 0) {
+                showCustomAlert('⚠️ Erro', 'Lista de jogos não encontrada ou vazia!');
+                return;
+            }
+            
+            const jogo = window.jogosMinimalistasGerados.find(j => j.id.toString() === id.toString());
+            if (!jogo) {
+                showCustomAlert('⚠️ Erro', 'Jogo não encontrado!');
+                return;
+            }
+            
+            showCustomConfirm(
+                `Tem certeza que deseja excluir este jogo?\n\nNúmeros: ${jogo.numeros.slice(0, jogo.quantidade).map(n => n.toString().padStart(2, '0')).join(' - ')}`, 
+                () => {
+                    // Remover jogo da lista
+                    window.jogosMinimalistasGerados = window.jogosMinimalistasGerados.filter(j => j.id.toString() !== id.toString());
+                    
+                    // Atualizar exibição
+                    if (window.jogosMinimalistasGerados.length === 0) {
+                        document.getElementById('resultadosMin').classList.add('hidden');
+                        showCustomAlert('✅ Lista Vazia', 'Todos os jogos foram removidos. Gere novos jogos quando desejar!');
+                    } else {
+                        exibirJogosMinimalistas(window.jogosMinimalistasGerados);
+                        showCustomAlert('✅ Excluído', 'Jogo removido da lista!');
+                    }
+                }
+            );
+        }
+
+        // Funções globais para drag and drop
+        function allowDrop(ev) { ev.preventDefault(); }
+        function dragEnter(ev) { ev.preventDefault(); ev.currentTarget.classList.add('drag-over'); }
+        function dragLeave(ev) { if (!ev.currentTarget.contains(ev.relatedTarget)) ev.currentTarget.classList.remove('drag-over'); }
+        function drop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('drag-over');
+            const numero = parseInt(ev.dataTransfer.getData('text/plain'));
+            if (!isNaN(numero)) adicionarNumeroDropArea(numero);
         }
     </script>
 </body>
